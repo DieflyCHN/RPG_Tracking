@@ -9,53 +9,45 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        TabView {
+            DungeonsView()
+                .tabItem {
+                    Label("副本", systemImage: "flag.checkered")
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
+            AttributesView()
+                .tabItem {
+                    Label("属性", systemImage: "chart.bar.xaxis")
+                }
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            StatsView()
+                .tabItem {
+                    Label("统计", systemImage: "chart.pie")
+                }
         }
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        let container = try? ModelContainer(
+            for: AttributeGroup.self,
+                RPGAttribute.self,
+                DungeonTemplate.self,
+                DungeonEffectTemplate.self,
+                DungeonLog.self,
+                DungeonEffectLog.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+
+        return Group {
+            if let container {
+                ContentView()
+                    .modelContainer(container)
+            } else {
+                Text("预览加载失败")
+            }
+        }
+    }
 }
