@@ -1,18 +1,16 @@
 //
-//  AddDungeonLogView.swift
+//  EditDungeonLogView.swift
 //  RPG Tracking
-//
-//  Created by Kornelius Schneider on 21.12.25.
 //
 
 import SwiftUI
 import SwiftData
 
-struct AddDungeonLogView: View {
+struct EditDungeonLogView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    private let template: DungeonTemplate?
+    let log: DungeonLog
 
     @State private var name: String
     @State private var date: Date
@@ -27,27 +25,26 @@ struct AddDungeonLogView: View {
     @State private var effects: [DungeonEffectDraft]
     @State private var showAttributePicker = false
 
-    init(template: DungeonTemplate?) {
-        self.template = template
-        _name = State(initialValue: template?.name ?? "")
-        _date = State(initialValue: .now)
-        _usesDuration = State(initialValue: template?.usesDuration ?? false)
-        _durationMinutes = State(initialValue: 60)
-        _rating = State(initialValue: 80)
-        _isFailed = State(initialValue: false)
-        _rewardWhole = State(initialValue: 1)
-        _rewardFraction = State(initialValue: 0)
-        _location = State(initialValue: "")
-        _notes = State(initialValue: "")
-        if let template {
-            let drafts = template.effects.compactMap { effect -> DungeonEffectDraft? in
-                guard let attribute = effect.attribute else { return nil }
-                return DungeonEffectDraft(attribute: attribute, multiplier: effect.multiplier)
-            }
-            _effects = State(initialValue: drafts)
-        } else {
-            _effects = State(initialValue: [])
+    init(log: DungeonLog) {
+        self.log = log
+        _name = State(initialValue: log.name)
+        _date = State(initialValue: log.date)
+        _usesDuration = State(initialValue: log.usesDuration)
+        _durationMinutes = State(initialValue: log.durationMinutes)
+        _rating = State(initialValue: log.rating)
+        _isFailed = State(initialValue: log.isFailed)
+        let rewardWhole = Int(log.rewardMultiplier)
+        let rewardFraction = Int((log.rewardMultiplier * 10).rounded()) % 10
+        _rewardWhole = State(initialValue: rewardWhole)
+        _rewardFraction = State(initialValue: rewardFraction)
+        _location = State(initialValue: log.location ?? "")
+        _notes = State(initialValue: log.notes ?? "")
+
+        let drafts = log.effects.compactMap { effect -> DungeonEffectDraft? in
+            guard let attribute = effect.attribute else { return nil }
+            return DungeonEffectDraft(attribute: attribute, multiplier: effect.multiplier)
         }
+        _effects = State(initialValue: drafts)
     }
 
     var body: some View {
@@ -119,7 +116,7 @@ struct AddDungeonLogView: View {
                     TextField("备注", text: $notes, axis: .vertical)
                 }
             }
-            .navigationTitle(template == nil ? "记录支线副本" : "记录副本")
+            .navigationTitle("修改记录")
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
             .toolbar {
@@ -128,7 +125,7 @@ struct AddDungeonLogView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
-                        saveLog()
+                        saveChanges()
                         dismiss()
                     }
                     .disabled(!canSubmit)
@@ -157,46 +154,75 @@ struct AddDungeonLogView: View {
         effects.removeAll { $0.id == effect.id }
     }
 
-    private func saveLog() {
+    private func saveChanges() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        let log = DungeonLog(
-            name: trimmed,
-            date: date,
-            usesDuration: usesDuration,
-            durationMinutes: durationMinutes,
-            rating: rating,
-            isFailed: isFailed,
-            rewardMultiplier: rewardMultiplierValue,
-            location: location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : location,
-            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes,
-            template: template
-        )
-        modelContext.insert(log)
+        // Collect affected attributes: union of old and new.
+        var seen = Set<UUID>()
+        var affected: [RPGAttribute] = []
+        for effect in log.effects {
+            guard let attr = effect.attribute else { continue }
+            if seen.insert(attr.id).inserted { affected.append(attr) }
+        }
+        for draft in effects {
+            if seen.insert(draft.attribute.id).inserted { affected.append(draft.attribute) }
+        }
 
-        let timeFactor = log.timeFactor
+        log.name = trimmed
+        log.date = date
+        log.usesDuration = usesDuration
+        log.durationMinutes = durationMinutes
+        log.rating = rating
+        log.isFailed = isFailed
+        log.rewardMultiplier = rewardMultiplierValue
+        log.location = location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : location
+        log.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
+
+        // Reconcile effects.
+        var existingByAttrID: [UUID: DungeonEffectLog] = [:]
+        for effect in log.effects {
+            if let id = effect.attribute?.id {
+                existingByAttrID[id] = effect
+            }
+        }
+
         let bonus = log.bonus
+        let timeFactor = log.timeFactor
         let rewardMultiplier = rewardMultiplierValue
 
-        for effect in effects {
-            let baseValue = effect.attribute.baseValue
-            let earned = max(0, baseValue * effect.multiplier * timeFactor * bonus * rewardMultiplier)
+        var keepIDs = Set<UUID>()
+        for draft in effects {
+            let baseValue = draft.attribute.baseValue
+            let earned = max(0, baseValue * draft.multiplier * timeFactor * bonus * rewardMultiplier)
 
-            if earned > 0 {
-                effect.attribute.applyGain(earned, asOf: date)
+            if let existing = existingByAttrID[draft.attribute.id] {
+                existing.multiplier = draft.multiplier
+                existing.attribute = draft.attribute
+                existing.baseValueSnapshot = baseValue
+                existing.earned = earned
+                keepIDs.insert(existing.id)
+            } else {
+                let created = DungeonEffectLog(
+                    attribute: draft.attribute,
+                    multiplier: draft.multiplier,
+                    baseValueSnapshot: baseValue,
+                    earned: earned,
+                    log: log
+                )
+                log.effects.append(created)
+                modelContext.insert(created)
+                keepIDs.insert(created.id)
             }
-
-            let logEffect = DungeonEffectLog(
-                attribute: effect.attribute,
-                multiplier: effect.multiplier,
-                baseValueSnapshot: baseValue,
-                earned: earned,
-                log: log
-            )
-            log.effects.append(logEffect)
-            modelContext.insert(logEffect)
         }
+
+        // Remove effects no longer present.
+        for effect in log.effects where !keepIDs.contains(effect.id) {
+            modelContext.delete(effect)
+        }
+
+        // Recalculate attributes to avoid double-counting.
+        AttributeRecalculator.recalculateAttributes(affected, in: modelContext)
     }
 
     private var rewardMultiplierValue: Double {

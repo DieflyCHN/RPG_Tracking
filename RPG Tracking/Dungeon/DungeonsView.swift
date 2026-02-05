@@ -16,6 +16,7 @@ struct DungeonsView: View {
     @State private var showAddTemplate = false
     @State private var showAddLog = false
     @State private var selectedTemplate: DungeonTemplate?
+    @State private var selectedLog: DungeonLog?
     @State private var pendingDeleteTemplate: DungeonTemplate?
     @State private var pendingDeleteLog: DungeonLog?
     @State private var showDeleteConfirm = false
@@ -54,7 +55,12 @@ struct DungeonsView: View {
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(logs) { log in
-                            DungeonLogRow(log: log)
+                            Button {
+                                selectedLog = log
+                            } label: {
+                                DungeonLogRow(log: log)
+                            }
+                            .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button(role: .destructive) {
                                         pendingDeleteLog = log
@@ -90,6 +96,10 @@ struct DungeonsView: View {
             }
             .sheet(item: $selectedTemplate) { template in
                 AddDungeonLogView(template: template)
+                    .presentationDetents([.large])
+            }
+            .sheet(item: $selectedLog) { log in
+                EditDungeonLogView(log: log)
                     .presentationDetents([.large])
             }
             .alert("确认删除", isPresented: $showDeleteConfirm) {
@@ -143,29 +153,7 @@ struct DungeonsView: View {
         }
         modelContext.delete(log)
 
-        for attr in affected {
-            recalculateAttribute(attr)
-        }
-    }
-
-    private func recalculateAttribute(_ attr: RPGAttribute) {
-        let descriptor = FetchDescriptor<DungeonEffectLog>()
-        let allEffects = (try? modelContext.fetch(descriptor)) ?? []
-        let effects = allEffects.filter { $0.attribute?.id == attr.id }
-
-        var total: Double = 0
-        var latest: Date?
-        for effect in effects {
-            total += effect.earned
-            if effect.earned > 0, let date = effect.log?.date {
-                if latest == nil || date > latest! {
-                    latest = date
-                }
-            }
-        }
-
-        attr.experience = total
-        attr.lastGainAt = latest
+        AttributeRecalculator.recalculateAttributes(affected, in: modelContext)
     }
 }
 
@@ -188,7 +176,7 @@ private struct DungeonLogRow: View {
 
     var body: some View {
         let totalEarned = log.effects.reduce(0.0) { $0 + $1.earned }
-        let dateText = log.date.formatted(date: .abbreviated, time: .shortened)
+        let dateText = DateFormatters.fullDateTime.string(from: log.date)
 
         return HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 4) {
@@ -213,6 +201,15 @@ private struct DungeonLogRow: View {
             }
         }
     }
+}
+
+private enum DateFormatters {
+    static let fullDateTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "yyyy年MM月dd日 HH:mm"
+        return formatter
+    }()
 }
 
 struct DungeonsView_Previews: PreviewProvider {

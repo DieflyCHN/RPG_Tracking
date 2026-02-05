@@ -14,6 +14,9 @@ struct AttributesView: View {
 
     @State private var showAddGroup = false
     @State private var showAddAttribute = false
+    @State private var showSettings = false
+    @State private var selectedGroup: AttributeGroup?
+    @State private var selectedAttribute: RPGAttribute?
     @State private var pendingDeleteGroup: AttributeGroup?
     @State private var pendingDeleteAttribute: RPGAttribute?
     @State private var showDeleteConfirm = false
@@ -27,15 +30,27 @@ struct AttributesView: View {
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(group.entries.sorted(by: { $0.name < $1.name })) { attr in
-                            AttributeRow(attr: attr) {
-                                pendingDeleteAttribute = attr
-                                pendingDeleteGroup = nil
-                                showDeleteConfirm = true
+                            Button {
+                                selectedAttribute = attr
+                            } label: {
+                                AttributeRow(attr: attr)
+                            }
+                            .buttonStyle(.plain)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    pendingDeleteAttribute = attr
+                                    pendingDeleteGroup = nil
+                                    showDeleteConfirm = true
+                                } label: {
+                                    Label("删除", systemImage: "trash")
+                                }
                             }
                         }
                     }
                 } label: {
-                    AttributeGroupRow(group: group) {
+                    AttributeGroupRow(group: group, onEdit: {
+                        selectedGroup = group
+                    }) {
                         pendingDeleteGroup = group
                         pendingDeleteAttribute = nil
                         showDeleteConfirm = true
@@ -59,8 +74,8 @@ struct AttributesView: View {
                         Image(systemName: "plus")
                     }
 
-                    NavigationLink {
-                        SettingView()
+                    Button {
+                        showSettings = true
                     } label: {
                         Image(systemName: "gearshape")
                     }
@@ -73,6 +88,17 @@ struct AttributesView: View {
             .sheet(isPresented: $showAddAttribute) {
                 AddAttributeView()
                     .presentationDetents([.medium, .large])
+            }
+            .sheet(item: $selectedGroup) { group in
+                EditAttributeGroupView(group: group)
+                    .presentationDetents([.medium])
+            }
+            .sheet(item: $selectedAttribute) { attr in
+                EditAttributeView(attribute: attr)
+                    .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingView()
             }
             .alert("确认删除", isPresented: $showDeleteConfirm) {
                 Button("取消", role: .cancel) {
@@ -110,6 +136,7 @@ struct AttributesView: View {
 
 private struct AttributeGroupRow: View {
     let group: AttributeGroup
+    var onEdit: () -> Void
     var onRequestDelete: () -> Void
 
     var body: some View {
@@ -123,6 +150,13 @@ private struct AttributeGroupRow: View {
             Text("Lv \(level) · \(progress)%")
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
@@ -136,7 +170,6 @@ private struct AttributeGroupRow: View {
 
 private struct AttributeRow: View {
     let attr: RPGAttribute
-    var onRequestDelete: () -> Void
 
     var body: some View {
         let now = Date()
@@ -149,13 +182,6 @@ private struct AttributeRow: View {
             Text("Lv \(level) · \(progress)%")
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                onRequestDelete()
-            } label: {
-                Label("删除", systemImage: "trash")
-            }
         }
     }
 }

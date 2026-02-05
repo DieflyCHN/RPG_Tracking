@@ -8,23 +8,40 @@
 import SwiftUI
 
 struct SettingView: View {
+    @AppStorage("statsHeatmapLatest") private var statsHeatmapLatest: Bool = true
+    @AppStorage("statsCompactLogs") private var statsCompactLogs: Bool = false
+
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("设置")
-                    .font(.title)
-                    .bold()
+            List {
+                Section("外观") {
+                    HStack {
+                        Text("统计页热力图最新：")
+                        Spacer()
+                        Text(statsHeatmapLatest ? "靠右" : "靠左")
+                            .foregroundStyle(.secondary)
+                        Toggle("", isOn: $statsHeatmapLatest)
+                            .labelsHidden()
+                    }
 
-                Spacer()
+                    HStack {
+                        Text("统计页紧凑布局：")
+                        Spacer()
+                        Toggle("", isOn: $statsCompactLogs)
+                            .labelsHidden()
+                    }
+                }
 
-                Text("""
-                     版本：v1.0.0-beta
-                     日期：2026.02.03
-                     """)
+                Section {
+                    Text("""
+                         版本：v1.1.0-beta
+                         日期：2026.02.05
+                         """)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .safeAreaPadding(.top)
+            .navigationTitle("设置")
+            .navigationBarTitleDisplayMode(.inline)
+            .listStyle(.insetGrouped)
         }
     }
 }
