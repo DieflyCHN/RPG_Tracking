@@ -36,6 +36,7 @@ struct DungeonsView: View {
                                 DungeonTemplateRow(template: template)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     pendingDeleteTemplate = template
@@ -61,6 +62,7 @@ struct DungeonsView: View {
                                 DungeonLogRow(log: log)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button(role: .destructive) {
                                         pendingDeleteLog = log
@@ -168,6 +170,8 @@ private struct DungeonTemplateRow: View {
                 .foregroundStyle(.secondary)
                 .font(.footnote)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 
@@ -200,6 +204,8 @@ private struct DungeonLogRow: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 

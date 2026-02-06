@@ -358,12 +358,17 @@ private struct HeatmapView: View {
     private let cellSize: CGFloat = 12
     private let cellSpacing: CGFloat = 4
     private let highlightColor = Color.orange.opacity(0.22)
-
     var body: some View {
-        let calendar = Calendar.current
+        let calendar: Calendar = {
+            var calendar = Calendar.current
+            calendar.firstWeekday = 2
+            return calendar
+        }()
         let today = calendar.startOfDay(for: Date())
         let grouped = groupByWeek(data: data, calendar: calendar, latestOnRight: latestOnRight)
         let maxValue = data.map(\.value).max() ?? 0
+        let weekdayLabels = ["一", " ", "三", " ", "五", " ", "日"]
+        let labelWidth: CGFloat = 26
 
         GeometryReader { proxy in
             let available = proxy.size.width
@@ -377,52 +382,71 @@ private struct HeatmapView: View {
                 range: highlightRange,
                 anchor: highlightAnchor
             )
+            let monthLabels = monthLabelColumns(weeks: padded, calendar: calendar, latestOnRight: latestOnRight)
+            let isScrollable = contentWidth > available + 1
 
-            ScrollViewReader { scrollProxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: cellSpacing) {
-                        ForEach(padded.indices, id: \.self) { index in
-                            ZStack(alignment: .top) {
-                                VStack(spacing: cellSpacing) {
-                                    ForEach(padded[index]) { day in
-                                        let isFuture = calendar.startOfDay(for: day.date) > today
-                                        let isPlaceholder = day.date == Date.distantPast
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .fill(isFuture || isPlaceholder ? Color.clear : color(for: day.value, max: maxValue))
-                                            .opacity(isFuture || isPlaceholder ? 0 : 1)
-                                            .frame(width: cellSize, height: cellSize)
-                                    }
-                                }
+            HStack(alignment: .top, spacing: 8) {
+                if !latestOnRight {
+                    weekdayColumn(labels: weekdayLabels, width: labelWidth)
+                }
 
-                                VStack(spacing: 0) {
-                                    ForEach(highlights[index], id: \.self) { segment in
-                                        let height = segmentHeight(segment)
-                                        RoundedRectangle(cornerRadius: 3)
-                                            .fill(highlightColor)
-                                            .frame(width: cellSize, height: height)
-                                            .offset(y: segmentOffset(segment))
-                                    }
+                HeatmapScrollView(latestOnRight: latestOnRight, isScrollable: isScrollable) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ZStack(alignment: .leading) {
+                            ForEach(monthLabels.indices, id: \.self) { index in
+                                if let label = monthLabels[index] {
+                                    Text(label)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: cellSize * 2 + cellSpacing, alignment: .leading)
+                                        .offset(x: CGFloat(index) * (cellSize + cellSpacing))
                                 }
                             }
-                            .id(index)
                         }
+                        .frame(width: contentWidth, height: 12, alignment: .leading)
+
+                        HStack(alignment: .top, spacing: cellSpacing) {
+                            ForEach(padded.indices, id: \.self) { index in
+                                ZStack(alignment: .top) {
+                                    VStack(spacing: cellSpacing) {
+                                        ForEach(padded[index]) { day in
+                                            let isFuture = calendar.startOfDay(for: day.date) > today
+                                            let isPlaceholder = day.date == Date.distantPast
+                                            RoundedRectangle(cornerRadius: 2)
+                                                .fill(isFuture || isPlaceholder ? Color.clear : color(for: day.value, max: maxValue))
+                                                .opacity(isFuture || isPlaceholder ? 0 : 1)
+                                                .frame(width: cellSize, height: cellSize)
+                                        }
+                                    }
+
+                                    VStack(spacing: 0) {
+                                        ForEach(highlights[index], id: \.self) { segment in
+                                            let height = segmentHeight(segment)
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .fill(highlightColor)
+                                                .frame(width: cellSize, height: height)
+                                                .offset(y: segmentOffset(segment))
+                                        }
+                                    }
+                                }
+                                .id(index)
+                            }
+                        }
+                        .frame(width: contentWidth, alignment: .leading)
+                        .padding(.bottom, 6)
                     }
-                    .frame(width: contentWidth, alignment: .leading)
+                    .frame(
+                        width: max(contentWidth, available),
+                        alignment: latestOnRight ? .trailing : .leading
+                    )
                 }
-                .onAppear {
-                    if latestOnRight, padded.count > 0 {
-                        scrollProxy.scrollTo(padded.count - 1, anchor: .trailing)
-                    }
-                }
-                .onChange(of: latestOnRight) { _, newValue in
-                    if newValue, padded.count > 0 {
-                        scrollProxy.scrollTo(padded.count - 1, anchor: .trailing)
-                    }
+
+                if latestOnRight {
+                    weekdayColumn(labels: weekdayLabels, width: labelWidth)
                 }
             }
-            .scrollDisabled(grouped.count <= minColumns)
         }
-        .frame(height: cellSize * 7 + cellSpacing * 6)
+        .frame(height: cellSize * 7 + cellSpacing * 6 + 18)
     }
 
     private struct HighlightSegment: Hashable {
@@ -571,5 +595,100 @@ private struct HeatmapView: View {
         case 0.5..<0.75: return Color(red: 0.20, green: 0.65, blue: 0.25)
         default: return Color(red: 0.10, green: 0.50, blue: 0.15)
         }
+    }
+
+    @ViewBuilder
+    private func weekdayColumn(labels: [String], width: CGFloat) -> some View {
+        VStack(spacing: cellSpacing) {
+            ForEach(labels.indices, id: \.self) { index in
+                let label = labels[index]
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(width: width, height: cellSize, alignment: .center)
+                    .opacity(label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0 : 1)
+            }
+        }
+        .padding(.top, 12)
+    }
+
+    private func monthLabelColumns(
+        weeks: [[HeatmapDay]],
+        calendar: Calendar,
+        latestOnRight: Bool
+    ) -> [String?] {
+        var labels = Array<String?>(repeating: nil, count: weeks.count)
+        var previousMonth: Int?
+
+        let indices = latestOnRight ? Array(weeks.indices) : Array(weeks.indices.reversed())
+
+        for index in indices {
+            let week = weeks[index]
+            let day = week.first { $0.date != Date.distantPast }
+            guard let day else { continue }
+            let month = calendar.component(.month, from: day.date)
+            if previousMonth != month {
+                labels[index] = String(format: "%02d", month)
+                previousMonth = month
+            }
+        }
+
+        return labels
+    }
+}
+
+private struct HeatmapScrollView<Content: View>: UIViewRepresentable {
+    let latestOnRight: Bool
+    let isScrollable: Bool
+    let content: Content
+
+    init(latestOnRight: Bool, isScrollable: Bool, @ViewBuilder content: () -> Content) {
+        self.latestOnRight = latestOnRight
+        self.isScrollable = isScrollable
+        self.content = content()
+    }
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.alwaysBounceHorizontal = true
+        scrollView.backgroundColor = .clear
+
+        let host = UIHostingController(rootView: content)
+        host.view.translatesAutoresizingMaskIntoConstraints = false
+        host.view.backgroundColor = .clear
+        scrollView.addSubview(host.view)
+
+        NSLayoutConstraint.activate([
+            host.view.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            host.view.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            host.view.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            host.view.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            host.view.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
+        ])
+
+        context.coordinator.host = host
+        return scrollView
+    }
+
+    func updateUIView(_ uiView: UIScrollView, context: Context) {
+        context.coordinator.host?.rootView = content
+        uiView.isScrollEnabled = isScrollable
+        uiView.alwaysBounceHorizontal = isScrollable
+        uiView.layoutIfNeeded()
+
+        let maxOffset = max(0, uiView.contentSize.width - uiView.bounds.width)
+        let targetX = latestOnRight ? maxOffset : 0
+        if abs(uiView.contentOffset.x - targetX) > 1 {
+            uiView.setContentOffset(CGPoint(x: targetX, y: 0), animated: false)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator {
+        var host: UIHostingController<Content>?
     }
 }

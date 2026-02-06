@@ -36,6 +36,7 @@ struct AttributesView: View {
                                 AttributeRow(attr: attr)
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     pendingDeleteAttribute = attr
@@ -183,6 +184,8 @@ private struct AttributeRow: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 
