@@ -53,6 +53,7 @@ final class DungeonLog: Identifiable {
     var notes: String?
 
     var template: DungeonTemplate?
+    var dailyLifeItem: DailyLifeItem?
     var effects: [DungeonEffectLog] = []
 
     init(
@@ -65,7 +66,8 @@ final class DungeonLog: Identifiable {
         rewardMultiplier: Double = 1,
         location: String? = nil,
         notes: String? = nil,
-        template: DungeonTemplate? = nil
+        template: DungeonTemplate? = nil,
+        dailyLifeItem: DailyLifeItem? = nil
     ) {
         self.id = UUID()
         self.name = name
@@ -78,6 +80,7 @@ final class DungeonLog: Identifiable {
         self.location = location
         self.notes = notes
         self.template = template
+        self.dailyLifeItem = dailyLifeItem
     }
 
     var bonus: Double {

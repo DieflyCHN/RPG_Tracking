@@ -12,6 +12,7 @@ struct ModifyDungeonLogView: View {
     @Query(sort: \DungeonLog.date, order: .reverse) private var logs: [DungeonLog]
 
     let log: DungeonLog
+    private var isDailyLife: Bool { log.dailyLifeItem != nil }
 
     @State private var name: String
     @State private var usesDuration: Bool
@@ -100,7 +101,10 @@ struct ModifyDungeonLogView: View {
                 }
 
                 Section("影响属性") {
-                    if effects.isEmpty {
+                    if isDailyLife {
+                        Text("日常生活记录不绑定属性")
+                            .foregroundStyle(.secondary)
+                    } else if effects.isEmpty {
                         Text("暂无影响属性")
                             .foregroundStyle(.secondary)
                     } else {
@@ -127,46 +131,50 @@ struct ModifyDungeonLogView: View {
                         }
                     }
 
-                    Button("添加影响属性") {
-                        showAttributePicker = true
+                    if !isDailyLife {
+                        Button("添加影响属性") {
+                            showAttributePicker = true
+                        }
                     }
                 }
 
-                Section("评分与结果") {
-                    Toggle("未达到预期", isOn: $isFailed)
-                        .onChange(of: isFailed) { _, newValue in
-                            if newValue {
-                                focusedField = nil
-                                ratingText = "0"
+                if !isDailyLife {
+                    Section("评分与结果") {
+                        Toggle("未达到预期", isOn: $isFailed)
+                            .onChange(of: isFailed) { _, newValue in
+                                if newValue {
+                                    focusedField = nil
+                                    ratingText = "0"
+                                }
                             }
-                        }
 
-                    if !isFailed {
-                        HStack {
-                            Text("主观评分")
-                            Spacer()
-                            TextField("0-100", text: $ratingText)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                                .focused($focusedField, equals: .rating)
-                        }
-                        .onChange(of: ratingText) { _, newValue in
-                            ratingText = newValue.filter { $0.isNumber }
-                        }
+                        if !isFailed {
+                            HStack {
+                                Text("主观评分")
+                                Spacer()
+                                TextField("0-100", text: $ratingText)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 80)
+                                    .focused($focusedField, equals: .rating)
+                            }
+                            .onChange(of: ratingText) { _, newValue in
+                                ratingText = newValue.filter { $0.isNumber }
+                            }
 
-                        HStack {
-                            Text("奖励倍数")
-                            Spacer()
-                            TextField("1.0", text: $rewardText)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                                .focused($focusedField, equals: .reward)
-                        }
-                        .onChange(of: rewardText) { _, newValue in
-                            let filtered = filterDecimal(newValue)
-                            rewardText = filtered
+                            HStack {
+                                Text("奖励倍数")
+                                Spacer()
+                                TextField("1.0", text: $rewardText)
+                                    .keyboardType(.decimalPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 80)
+                                    .focused($focusedField, equals: .reward)
+                            }
+                            .onChange(of: rewardText) { _, newValue in
+                                let filtered = filterDecimal(newValue)
+                                rewardText = filtered
+                            }
                         }
                     }
                 }
@@ -204,7 +212,7 @@ struct ModifyDungeonLogView: View {
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !effects.isEmpty
+            && (isDailyLife || !effects.isEmpty)
     }
 
     private func addEffect(attribute: RPGAttribute) {
@@ -241,9 +249,15 @@ struct ModifyDungeonLogView: View {
         log.date = endDate
         log.usesDuration = usesDuration
         log.durationMinutes = durationMinutes
-        log.rating = ratingValue
-        log.isFailed = isFailed
-        log.rewardMultiplier = rewardMultiplierValue
+        if isDailyLife {
+            log.rating = 0
+            log.isFailed = false
+            log.rewardMultiplier = 1.0
+        } else {
+            log.rating = ratingValue
+            log.isFailed = isFailed
+            log.rewardMultiplier = rewardMultiplierValue
+        }
         log.location = location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : location
         log.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
 
@@ -260,7 +274,8 @@ struct ModifyDungeonLogView: View {
         let rewardMultiplier = rewardMultiplierValue
 
         var keepIDs = Set<UUID>()
-        for draft in effects {
+        if !isDailyLife {
+            for draft in effects {
             let baseValue = draft.attribute.baseValue
             let earned = max(0, baseValue * draft.multiplier * timeFactor * bonus * rewardMultiplier)
 
@@ -281,6 +296,7 @@ struct ModifyDungeonLogView: View {
                 log.effects.append(created)
                 modelContext.insert(created)
                 keepIDs.insert(created.id)
+            }
             }
         }
 
@@ -397,6 +413,10 @@ struct ModifyDungeonLogView: View {
 
     private func handleFocusChange(_ newValue: FocusField?) {
         guard let last = lastFocusedField, last != newValue else {
+            lastFocusedField = newValue
+            return
+        }
+        if isDailyLife {
             lastFocusedField = newValue
             return
         }
