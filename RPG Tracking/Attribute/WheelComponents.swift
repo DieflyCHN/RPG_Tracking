@@ -1,6 +1,7 @@
 //
 //  WheelComponents.swift
 //  RPG Tracking
+//  暂时放弃使用（保留以便后续对比或回滚）
 //
 
 import SwiftUI
@@ -25,6 +26,8 @@ struct WheelDecimalRow: View {
                     }
                 }
                 .pickerStyle(.wheel)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(width: 60, height: 36)
                 .scaleEffect(pickerScale)
                 .clipped()
@@ -44,6 +47,8 @@ struct WheelDecimalRow: View {
                     }
                 }
                 .pickerStyle(.wheel)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(width: 50, height: 36)
                 .scaleEffect(pickerScale)
                 .clipped()
@@ -73,6 +78,8 @@ struct WheelTwoDecimalRow: View {
                     }
                 }
                 .pickerStyle(.wheel)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(width: 60, height: 36)
                 .scaleEffect(pickerScale)
                 .clipped()
@@ -92,6 +99,8 @@ struct WheelTwoDecimalRow: View {
                     }
                 }
                 .pickerStyle(.wheel)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(width: 50, height: 36)
                 .scaleEffect(pickerScale)
                 .clipped()
@@ -104,6 +113,8 @@ struct WheelTwoDecimalRow: View {
                     }
                 }
                 .pickerStyle(.wheel)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(width: 50, height: 36)
                 .scaleEffect(pickerScale)
                 .clipped()
@@ -131,6 +142,8 @@ struct BaseValueWheelRow: View {
                     }
                 }
                 .pickerStyle(.wheel)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(width: 60, height: 36)
                 .scaleEffect(pickerScale)
                 .clipped()
@@ -150,6 +163,8 @@ struct BaseValueWheelRow: View {
                     }
                 }
                 .pickerStyle(.wheel)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(width: 50, height: 36)
                 .scaleEffect(pickerScale)
                 .clipped()
@@ -176,6 +191,8 @@ struct WheelIntRow: View {
                 }
             }
             .pickerStyle(.wheel)
+            .background(Color(.tertiarySystemFill))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             .frame(width: 90, height: 36)
             .scaleEffect(pickerScale)
             .clipped()

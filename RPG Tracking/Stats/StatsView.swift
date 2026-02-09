@@ -29,10 +29,14 @@ enum StatsTimeRange: String, CaseIterable, Identifiable {
 struct StatsView: View {
     @Query private var effects: [DungeonEffectLog]
     @Query(sort: \DungeonLog.date, order: .reverse) private var logs: [DungeonLog]
+    @Environment(\.modelContext) private var modelContext
     @State private var range: StatsTimeRange = .week
     @AppStorage("statsHeatmapLatest") private var statsHeatmapLatest: Bool = true
     @AppStorage("statsCompactLogs") private var statsCompactLogs: Bool = false
     @State private var anchorDate: Date = Date()
+    @State private var selectedLog: DungeonLog?
+    @State private var pendingDeleteLog: DungeonLog?
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -73,6 +77,19 @@ struct StatsView: View {
                         ForEach(logsInRange) { log in
                             StatsLogRow(log: log, compact: statsCompactLogs)
                                 .statsRowInsets(compact: statsCompactLogs)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button {
+                                        selectedLog = log
+                                    } label: {
+                                        Label("编辑", systemImage: "pencil")
+                                    }
+                                    Button(role: .destructive) {
+                                        pendingDeleteLog = log
+                                        showDeleteConfirm = true
+                                    } label: {
+                                        Label("删除", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                 }
@@ -80,6 +97,27 @@ struct StatsView: View {
             .navigationTitle("统计")
             .navigationBarTitleDisplayMode(.inline)
             .listStyle(.insetGrouped)
+            .sheet(item: $selectedLog) { log in
+                ModifyDungeonLogView(log: log)
+                    .presentationDetents([.large])
+            }
+            .alert("确认删除", isPresented: $showDeleteConfirm) {
+                Button("取消", role: .cancel) {
+                    pendingDeleteLog = nil
+                }
+                Button("删除", role: .destructive) {
+                    if let log = pendingDeleteLog {
+                        deleteLog(log)
+                    }
+                    pendingDeleteLog = nil
+                }
+            } message: {
+                if let log = pendingDeleteLog {
+                    Text("将删除记录“\(log.name)”。此操作无法撤销。")
+                } else {
+                    Text("此操作无法撤销。")
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -131,6 +169,24 @@ struct StatsView: View {
         logsInRange.reduce(0) { total, log in
             total + log.effects.reduce(0) { $0 + $1.earned }
         }
+    }
+
+    private func deleteLog(_ log: DungeonLog) {
+        var seen = Set<UUID>()
+        var affected: [RPGAttribute] = []
+        for effect in log.effects {
+            guard let attr = effect.attribute else { continue }
+            if seen.insert(attr.id).inserted {
+                affected.append(attr)
+            }
+        }
+
+        for effect in log.effects {
+            modelContext.delete(effect)
+        }
+        modelContext.delete(log)
+
+        AttributeRecalculator.recalculateAttributes(affected, in: modelContext)
     }
 }
 
@@ -257,12 +313,12 @@ private struct StatsLogRow: View {
 
     var body: some View {
         let totalEarned = log.effects.reduce(0.0) { $0 + $1.earned }
-        let dateText = DateFormatters.fullDateTime.string(from: log.date)
+        let durationText = formatDuration(minutes: log.durationMinutes)
 
         return HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: compact ? 2 : 4) {
                 Text(log.name)
-                Text(dateText)
+                Text(durationText)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -283,6 +339,18 @@ private struct StatsLogRow: View {
         }
         .font(.body)
         .padding(.vertical, compact ? 0 : 1)
+    }
+
+    private func formatDuration(minutes: Int) -> String {
+        let totalMinutes = max(0, minutes)
+        let totalHours = Double(totalMinutes) / 60.0
+        if totalHours >= 24 {
+            let days = totalHours / 24.0
+            return String(format: "%.1f日", days)
+        }
+        let hours = totalMinutes / 60
+        let mins = totalMinutes % 60
+        return String(format: "%02d小时%02d分钟", hours, mins)
     }
 }
 

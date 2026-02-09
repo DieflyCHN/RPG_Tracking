@@ -81,7 +81,11 @@ final class DungeonLog: Identifiable {
     }
 
     var bonus: Double {
-        if isFailed { return 0 }
+        if isFailed {
+            let stored = UserDefaults.standard.double(forKey: "failedBonus")
+            let value = stored == 0 ? 1.0 : stored
+            return max(0.1, min(2.0, value))
+        }
         return max(0, min(1, Double(rating) / 100))
     }
 

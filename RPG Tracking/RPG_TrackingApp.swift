@@ -17,6 +17,7 @@ struct RPG_TrackingApp: App {
         .modelContainer(for: [
             AttributeGroup.self,
             RPGAttribute.self,
+            DailyLifeItem.self,
             DungeonTemplate.self,
             DungeonEffectTemplate.self,
             DungeonLog.self,

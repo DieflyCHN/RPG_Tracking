@@ -1,0 +1,432 @@
+//
+//  TimerView.swift
+//  RPG Tracking
+//
+
+import SwiftUI
+import SwiftData
+
+struct TimerView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \DungeonLog.date, order: .reverse) private var logs: [DungeonLog]
+    @Query(sort: \DungeonTemplate.name) private var templates: [DungeonTemplate]
+
+    @State private var sessionStart: Date = .now
+    @State private var hasAnchoredToLog = false
+    @State private var selectedTemplate: DungeonTemplate?
+    @State private var showTemplatePicker = false
+    @State private var showVictorySheet = false
+
+    var body: some View {
+        NavigationStack {
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let now = context.date
+                let remaining = dayRemaining(asOf: now)
+                let elapsed = max(0, now.timeIntervalSince(sessionStart))
+
+                List {
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ProgressView(value: 1 - remaining.fractionRemaining)
+                                .tint(.green)
+                                .scaleEffect(x: 1, y: 2.0, anchor: .center)
+                            Text("今日剩余 \(formatHoursMinutes(remaining.secondsRemaining))")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        .padding(.vertical, 6)
+                        .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+                    }
+
+                    Section {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("持续时间")
+                                Spacer()
+                                Text(formatDuration(elapsed))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text("开始")
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Text(DateFormatters.monthDayTimeSeconds.string(from: sessionStart))
+                                        .monospacedDigit()
+                                }
+                                HStack {
+                                    Text("结束")
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Text(DateFormatters.monthDayTimeSeconds.string(from: now))
+                                        .monospacedDigit()
+                                }
+                            }
+
+                            HStack {
+                                Text("副本为")
+                                Spacer()
+                                Text(selectedTemplate?.name ?? "未选择")
+                                    .foregroundStyle(.secondary)
+                                Button {
+                                    showTemplatePicker = true
+                                } label: {
+                                    Image(systemName: selectedTemplate == nil ? "plus.circle" : "gearshape")
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                    }
+
+                    Section {
+                        Button {
+                            showVictorySheet = true
+                        } label: {
+                            Text("胜利！")
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .font(.headline)
+                        }
+                        .disabled(selectedTemplate == nil)
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .navigationTitle("计时")
+                .navigationBarTitleDisplayMode(.inline)
+                .sheet(isPresented: $showTemplatePicker) {
+                    TemplatePickerSheet(templates: templates, selected: $selectedTemplate)
+                }
+                .sheet(isPresented: $showVictorySheet) {
+                    VictorySheet { result in
+                        saveLog(
+                            endAt: now,
+                            elapsedSeconds: elapsed,
+                            rating: result.rating,
+                            isFailed: result.isFailed,
+                            rewardMultiplier: result.rewardMultiplier,
+                            location: result.location,
+                            notes: result.notes
+                        )
+                    }
+                }
+            }
+            .onAppear {
+                // Soft "always-on": anchor to the latest log end whenever entering the timer page.
+                if let lastEnd = logs.first?.date {
+                    sessionStart = lastEnd
+                    hasAnchoredToLog = true
+                } else {
+                    sessionStart = Date()
+                    hasAnchoredToLog = false
+                }
+            }
+            .onChange(of: logs.first?.date) { _, newValue in
+                // First launch: @Query may populate after onAppear. Anchor once when the first log arrives.
+                guard !hasAnchoredToLog, let newValue else { return }
+                sessionStart = newValue
+                hasAnchoredToLog = true
+            }
+        }
+    }
+
+    private func saveLog(
+        endAt: Date,
+        elapsedSeconds: TimeInterval,
+        rating: Int,
+        isFailed: Bool,
+        rewardMultiplier: Double,
+        location: String?,
+        notes: String?
+    ) {
+        guard let template = selectedTemplate else { return }
+        let durationMinutes = max(1, Int((elapsedSeconds / 60.0).rounded()))
+
+        let log = DungeonLog(
+            name: template.name,
+            date: endAt,
+            usesDuration: template.usesDuration,
+            durationMinutes: durationMinutes,
+            rating: rating,
+            isFailed: isFailed,
+            rewardMultiplier: rewardMultiplier,
+            location: location,
+            notes: notes,
+            template: template
+        )
+        modelContext.insert(log)
+
+        let bonus = log.bonus
+        let timeFactor = log.timeFactor
+
+        for effect in template.effects {
+            guard let attribute = effect.attribute else { continue }
+            let baseValue = attribute.baseValue
+            let earned = max(0, baseValue * effect.multiplier * timeFactor * bonus * rewardMultiplier)
+
+            if earned > 0 {
+                attribute.applyGain(earned, asOf: endAt)
+            }
+
+            let logEffect = DungeonEffectLog(
+                attribute: attribute,
+                multiplier: effect.multiplier,
+                baseValueSnapshot: baseValue,
+                earned: earned,
+                log: log
+            )
+            log.effects.append(logEffect)
+            modelContext.insert(logEffect)
+        }
+
+        sessionStart = endAt
+        hasAnchoredToLog = true
+        selectedTemplate = nil
+        showVictorySheet = false
+    }
+
+    private func dayRemaining(asOf now: Date) -> (secondsRemaining: TimeInterval, fractionRemaining: Double) {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: now)
+        let nextDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay.addingTimeInterval(86_400)
+        let secondsTotal = nextDay.timeIntervalSince(startOfDay)
+        let secondsRemaining = max(0, nextDay.timeIntervalSince(now))
+        let fractionRemaining = secondsTotal > 0 ? (secondsRemaining / secondsTotal) : 0
+        return (secondsRemaining, fractionRemaining)
+    }
+
+    private func formatHoursMinutes(_ seconds: TimeInterval) -> String {
+        let total = Int(max(0, seconds))
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        return String(format: "%02d:%02d", hours, minutes)
+    }
+
+    private func formatDuration(_ seconds: TimeInterval) -> String {
+        let total = Int(max(0, seconds))
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let secs = total % 60
+        return String(format: "%02d:%02d:%02d", hours, minutes, secs)
+    }
+}
+
+private struct TemplatePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let templates: [DungeonTemplate]
+    @Binding var selected: DungeonTemplate?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if templates.isEmpty {
+                    Text("暂无主线副本，请先在设置中创建。")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(templates) { template in
+                        Button {
+                            selected = template
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Text(template.name)
+                                Spacer()
+                                if selected?.id == template.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                    }
+                }
+            }
+            .navigationTitle("选择副本")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+private struct VictoryResult {
+    let rating: Int
+    let isFailed: Bool
+    let rewardMultiplier: Double
+    let location: String?
+    let notes: String?
+}
+
+private struct VictorySheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var onConfirm: (VictoryResult) -> Void
+
+    @State private var isFailed = false
+    @State private var ratingText: String = "80"
+    @State private var rewardWhole: Int = 1
+    @State private var rewardText: String = "1.0"
+    @State private var location = ""
+    @State private var notes = ""
+    @State private var showOptionalInfo = false
+    @FocusState private var focusedField: FocusField?
+    @State private var lastFocusedField: FocusField?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("评分与结果") {
+                    Toggle("未达到预期", isOn: $isFailed)
+                        .onChange(of: isFailed) { _, newValue in
+                            if newValue {
+                                focusedField = nil
+                                ratingText = "0"
+                            }
+                        }
+
+                    if !isFailed {
+                        HStack {
+                            Text("主观评分")
+                            Spacer()
+                            TextField("0-100", text: $ratingText)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                                .focused($focusedField, equals: .rating)
+                        }
+                        .onChange(of: ratingText) { _, newValue in
+                            ratingText = newValue.filter { $0.isNumber }
+                        }
+
+                        HStack {
+                            Text("奖励倍数")
+                            Spacer()
+                            TextField("1.0", text: $rewardText)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                                .focused($focusedField, equals: .reward)
+                        }
+                        .onChange(of: rewardText) { _, newValue in
+                            let filtered = filterDecimal(newValue)
+                            rewardText = filtered
+                        }
+                    }
+                }
+
+                Section {
+                    DisclosureGroup("可选信息", isExpanded: $showOptionalInfo) {
+                        TextField("地点", text: $location)
+                        TextField("备注", text: $notes, axis: .vertical)
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("结算")
+            .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: focusedField) { _, newValue in
+                handleFocusChange(newValue)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        onConfirm(
+                            VictoryResult(
+                                rating: ratingValue,
+                                isFailed: isFailed,
+                                rewardMultiplier: rewardMultiplierValue,
+                                location: location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : location,
+                                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes
+                            )
+                        )
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private var ratingValue: Int {
+        let value = Int(ratingText) ?? 0
+        return min(max(value, 0), 100)
+    }
+
+    private var rewardMultiplierValue: Double {
+        let value = Double(rewardText) ?? 1.0
+        return clampToOneDecimal(min(max(value, 0), 2.0))
+    }
+
+    private func filterDecimal(_ text: String) -> String {
+        var result = ""
+        var hasDot = false
+        for char in text where char.isNumber || char == "." {
+            if char == "." {
+                if hasDot { continue }
+                hasDot = true
+            }
+            result.append(char)
+        }
+        return result
+    }
+
+    private func clampToOneDecimal(_ value: Double) -> Double {
+        (value * 10).rounded() / 10.0
+    }
+
+    private func clampIntStringOrDefault(_ text: String, min: Int, max: Int, defaultValue: Int) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Int(trimmed) else { return String(defaultValue) }
+        return String(Swift.min(Swift.max(value, min), max))
+    }
+
+    private func clampDecimalStringOrDefault(_ text: String, min: Double, max: Double, defaultValue: Double) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == "." {
+            return String(format: "%.1f", clampToOneDecimal(defaultValue))
+        }
+        if trimmed.hasSuffix(".") { return trimmed }
+        guard let value = Double(trimmed) else {
+            return String(format: "%.1f", clampToOneDecimal(defaultValue))
+        }
+        let clamped = Swift.min(Swift.max(value, min), max)
+        return String(format: "%.1f", clampToOneDecimal(clamped))
+    }
+
+    private func handleFocusChange(_ newValue: FocusField?) {
+        guard let last = lastFocusedField, last != newValue else {
+            lastFocusedField = newValue
+            return
+        }
+        switch last {
+        case .rating:
+            ratingText = clampIntStringOrDefault(ratingText, min: 0, max: 100, defaultValue: 0)
+        case .reward:
+            rewardText = clampDecimalStringOrDefault(rewardText, min: 0, max: 2.0, defaultValue: 1.0)
+        }
+        lastFocusedField = newValue
+    }
+}
+
+private enum DateFormatters {
+    static let monthDayTimeSeconds: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "MM月dd日 HH:mm:ss"
+        return formatter
+    }()
+}
+
+private enum FocusField: Hashable {
+    case rating
+    case reward
+}

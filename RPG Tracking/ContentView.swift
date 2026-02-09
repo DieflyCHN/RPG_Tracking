@@ -11,9 +11,9 @@ import SwiftData
 struct ContentView: View {
     var body: some View {
         TabView {
-            DungeonsView()
+            TimerView()
                 .tabItem {
-                    Label("副本", systemImage: "flag.checkered")
+                    Label("计时", systemImage: "timer")
                 }
 
             AttributesView()

@@ -16,20 +16,14 @@ struct EditAttributeView: View {
     @State private var name: String
     @State private var selectedGroupID: UUID?
 
-    @State private var baseValue: Double
-    @State private var baseWhole: Int
-    @State private var baseFraction: Int
-
-    @State private var weight: Double
-    @State private var weightWhole: Int
-    @State private var weightFraction: Int
+    @State private var baseValueText: String
+    @State private var weightText: String
 
     @State private var kind: AttributeKind
 
-    @State private var decayPerDay: Double
-    @State private var decayWhole: Int
-    @State private var decayTenth: Int
-    @State private var decayHundredth: Int
+    @State private var decayText: String
+    @FocusState private var focusedField: FocusField?
+    @State private var lastFocusedField: FocusField?
 
     init(attribute: RPGAttribute) {
         self.attribute = attribute
@@ -38,29 +32,16 @@ struct EditAttributeView: View {
         _selectedGroupID = State(initialValue: attribute.group?.id)
 
         let clampedBase = Self.clamp(attribute.baseValue, to: 1...10)
-        _baseValue = State(initialValue: clampedBase)
-        let baseWhole = min(max(Int(clampedBase), 1), 10)
-        let baseFraction = Int((clampedBase - Double(baseWhole)) * 10).clamped(to: 0...9)
-        _baseWhole = State(initialValue: baseWhole)
-        _baseFraction = State(initialValue: baseWhole == 10 ? 0 : baseFraction)
+        _baseValueText = State(initialValue: String(format: "%.1f", clampedBase))
 
         let clampedWeight = Self.clamp(attribute.weight, to: 1...3)
-        _weight = State(initialValue: clampedWeight)
-        let weightWhole = min(max(Int(clampedWeight), 1), 3)
-        let weightFraction = Int((clampedWeight - Double(weightWhole)) * 10).clamped(to: 0...9)
-        _weightWhole = State(initialValue: weightWhole)
-        _weightFraction = State(initialValue: weightWhole == 3 ? 0 : weightFraction)
+        _weightText = State(initialValue: String(format: "%.1f", clampedWeight))
 
         let kind = attribute.kind
         _kind = State(initialValue: kind)
 
         let clampedDecay = Self.clamp(attribute.decayPerDay, to: 0...1)
-        _decayPerDay = State(initialValue: clampedDecay)
-        let decayWhole = min(max(Int(clampedDecay), 0), 1)
-        let decimal = Int(((clampedDecay - Double(decayWhole)) * 100).rounded()).clamped(to: 0...99)
-        _decayWhole = State(initialValue: decayWhole)
-        _decayTenth = State(initialValue: decimal / 10)
-        _decayHundredth = State(initialValue: decimal % 10)
+        _decayText = State(initialValue: String(format: "%.2f", clampedDecay))
     }
 
     var body: some View {
@@ -79,18 +60,31 @@ struct EditAttributeView: View {
                 }
 
                 Section("属性配置") {
-                    BaseValueWheelRow(
-                        title: "基础值（1-10）",
-                        whole: $baseWhole,
-                        fraction: $baseFraction
-                    )
+                    HStack {
+                        Text("基础值（1-10）")
+                        Spacer()
+                        TextField("1.0", text: $baseValueText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 90)
+                            .focused($focusedField, equals: .baseValue)
+                    }
+                    .onChange(of: baseValueText) { _, newValue in
+                        baseValueText = filterDecimal(newValue)
+                    }
 
-                    WheelDecimalRow(
-                        title: "权重（1-3）",
-                        wholeRange: 1...3,
-                        whole: $weightWhole,
-                        fraction: $weightFraction
-                    )
+                    HStack {
+                        Text("权重（1-3）")
+                        Spacer()
+                        TextField("1.0", text: $weightText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 90)
+                            .focused($focusedField, equals: .weight)
+                    }
+                    .onChange(of: weightText) { _, newValue in
+                        weightText = filterDecimal(newValue)
+                    }
 
                     Picker("属性类型", selection: $kind) {
                         ForEach(AttributeKind.allCases) { option in
@@ -99,19 +93,27 @@ struct EditAttributeView: View {
                     }
 
                     if kind == .decay {
-                        WheelTwoDecimalRow(
-                            title: "每日衰减（0-1）",
-                            wholeRange: 0...1,
-                            whole: $decayWhole,
-                            tenth: $decayTenth,
-                            hundredth: $decayHundredth
-                        )
+                        HStack {
+                            Text("每日衰减（0-1）")
+                            Spacer()
+                            TextField("0.05", text: $decayText)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 90)
+                                .focused($focusedField, equals: .decay)
+                        }
+                        .onChange(of: decayText) { _, newValue in
+                            decayText = filterDecimal(newValue)
+                        }
                     }
                 }
             }
             .navigationTitle("修改属性")
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
+            .onChange(of: focusedField) { _, newValue in
+                handleFocusChange(newValue)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
@@ -128,43 +130,6 @@ struct EditAttributeView: View {
                 if selectedGroupID == nil {
                     selectedGroupID = groups.first?.id
                 }
-            }
-            .onChange(of: baseWhole) { _, newValue in
-                if newValue == 10 { baseFraction = 0 }
-                baseValue = Double(baseWhole) + Double(baseFraction) / 10
-            }
-            .onChange(of: baseFraction) { _, _ in
-                if baseWhole == 10 { baseFraction = 0 }
-                baseValue = Double(baseWhole) + Double(baseFraction) / 10
-            }
-            .onChange(of: weightWhole) { _, _ in
-                if weightWhole == 3 { weightFraction = 0 }
-                weight = Double(weightWhole) + Double(weightFraction) / 10
-            }
-            .onChange(of: weightFraction) { _, _ in
-                if weightWhole == 3 { weightFraction = 0 }
-                weight = Double(weightWhole) + Double(weightFraction) / 10
-            }
-            .onChange(of: decayWhole) { _, _ in
-                if decayWhole == 1 {
-                    decayTenth = 0
-                    decayHundredth = 0
-                }
-                decayPerDay = Double(decayWhole) + Double(decayTenth) / 10 + Double(decayHundredth) / 100
-            }
-            .onChange(of: decayTenth) { _, _ in
-                if decayWhole == 1 {
-                    decayTenth = 0
-                    decayHundredth = 0
-                }
-                decayPerDay = Double(decayWhole) + Double(decayTenth) / 10 + Double(decayHundredth) / 100
-            }
-            .onChange(of: decayHundredth) { _, _ in
-                if decayWhole == 1 {
-                    decayTenth = 0
-                    decayHundredth = 0
-                }
-                decayPerDay = Double(decayWhole) + Double(decayTenth) / 10 + Double(decayHundredth) / 100
             }
         }
     }
@@ -184,10 +149,10 @@ struct EditAttributeView: View {
 
         let oldGroup = attribute.group
         attribute.name = trimmed
-        attribute.baseValue = baseValue
-        attribute.weight = weight
+        attribute.baseValue = Self.clamp(parseDouble(baseValueText), to: 1...10)
+        attribute.weight = Self.clamp(parseDouble(weightText), to: 1...3)
         attribute.kind = kind
-        attribute.decayPerDay = decayPerDay
+        attribute.decayPerDay = Self.clamp(parseDouble(decayText), to: 0...1)
 
         if oldGroup?.id != newGroup.id {
             if let oldGroup {
@@ -209,4 +174,61 @@ struct EditAttributeView: View {
     private static func clamp(_ value: Double, to range: ClosedRange<Double>) -> Double {
         Swift.min(Swift.max(value, range.lowerBound), range.upperBound)
     }
+
+    private func parseDouble(_ text: String) -> Double {
+        Double(text) ?? 0
+    }
+
+    private func filterDecimal(_ text: String) -> String {
+        var result = ""
+        var hasDot = false
+        for char in text where char.isNumber || char == "." {
+            if char == "." {
+                if hasDot { continue }
+                hasDot = true
+            }
+            result.append(char)
+        }
+        return result
+    }
+
+    private func clampDecimalStringOrDefault(_ text: String, min: Double, max: Double, fractionDigits: Int, defaultValue: Double) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == "." {
+            return formatDecimal(defaultValue, fractionDigits: fractionDigits)
+        }
+        if trimmed.hasSuffix(".") { return trimmed }
+        guard let value = Double(trimmed) else {
+            return formatDecimal(defaultValue, fractionDigits: fractionDigits)
+        }
+        let clamped = Swift.min(Swift.max(value, min), max)
+        return formatDecimal(clamped, fractionDigits: fractionDigits)
+    }
+
+    private func formatDecimal(_ value: Double, fractionDigits: Int) -> String {
+        let format = "%.\(fractionDigits)f"
+        return String(format: format, value)
+    }
+
+    private func handleFocusChange(_ newValue: FocusField?) {
+        guard let last = lastFocusedField, last != newValue else {
+            lastFocusedField = newValue
+            return
+        }
+        switch last {
+        case .baseValue:
+            baseValueText = clampDecimalStringOrDefault(baseValueText, min: 1, max: 10, fractionDigits: 1, defaultValue: 1.0)
+        case .weight:
+            weightText = clampDecimalStringOrDefault(weightText, min: 1, max: 3, fractionDigits: 1, defaultValue: 1.0)
+        case .decay:
+            decayText = clampDecimalStringOrDefault(decayText, min: 0, max: 1, fractionDigits: 2, defaultValue: 0.05)
+        }
+        lastFocusedField = newValue
+    }
+}
+
+private enum FocusField: Hashable {
+    case baseValue
+    case weight
+    case decay
 }
