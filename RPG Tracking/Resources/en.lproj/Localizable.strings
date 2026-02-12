@@ -1,0 +1,183 @@
+"tab.timer" = "Timer";
+"tab.attributes" = "Attributes";
+"tab.stats" = "Stats";
+"preview.failed" = "Preview failed";
+
+"action.add" = "Add";
+"action.save" = "Save";
+"action.cancel" = "Cancel";
+"action.close" = "Close";
+"action.delete" = "Delete";
+"action.edit" = "Edit";
+"action.delete_confirm" = "Confirm Delete";
+"action.done" = "Done";
+"action.archive" = "Archive";
+"action.unarchive" = "Restore";
+
+"common.irreversible" = "This action cannot be undone.";
+"common.please_select" = "Please select";
+
+"range.day" = "Day";
+"range.week" = "Week";
+"range.year" = "Year";
+"range.all" = "All";
+"range.week_format" = "Week %@ (%@-%@)";
+"range.year_format" = "%d";
+
+"date.month_day" = "%@/%@";
+
+"weekday.mon" = "M";
+"weekday.wed" = "W";
+"weekday.fri" = "F";
+"weekday.sun" = "S";
+
+"stats.title" = "Stats";
+"stats.section.records" = "Records";
+"stats.total_earned" = "Total Earned";
+"stats.empty_records" = "No records";
+"stats.section.range" = "Range";
+"stats.range_menu" = "Range";
+"stats.delete_log_confirm" = "Delete “%@”? This action cannot be undone.";
+"stats.failed" = "Below expectation";
+"stats.rating" = "Rating %d";
+"stats.duration.days" = "%.1f days";
+"stats.duration.hm" = "%02d h %02d m";
+
+"settings.title" = "Settings";
+"settings.section.data" = "Data";
+"settings.dungeon_manage" = "Dungeon Management";
+"settings.section.appearance" = "Appearance";
+"settings.stats_heatmap_latest" = "Heatmap latest:";
+"settings.align_right" = "Right";
+"settings.align_left" = "Left";
+"settings.stats_compact" = "Compact logs:";
+"settings.section.settlement" = "Settlement";
+"settings.failed_bonus" = "Failed bonus";
+"settings.version_date" = "Version: %@\nDate: %@";
+"settings.section.dev" = "Developer";
+"settings.dev.seed" = "Seed debug data";
+
+"attributes.title" = "Attributes";
+"attributes.empty" = "No items";
+"attributes.empty_hint" = "Create a group, then add items.";
+"attributes.add_group" = "Add Group";
+"attributes.add_item" = "Add Attribute";
+"attributes.delete_group_confirm" = "Delete “%@” and all attributes? This action cannot be undone.";
+"attributes.delete_item_confirm" = "Delete “%@”? This action cannot be undone.";
+
+"attribute.section.basic" = "Basic";
+"attribute.section.config" = "Configuration";
+"attribute.name" = "Name";
+"attribute.group" = "Group";
+"attribute.base_value" = "Base Value (1-10)";
+"attribute.weight" = "Weight (1-3)";
+"attribute.kind" = "Type";
+"attribute.decay" = "Daily Decay (0-1)";
+"attribute.add_title" = "Add Attribute";
+"attribute.edit_title" = "Edit Attribute";
+"attribute.group_name" = "Group Name";
+"attribute.add_group_title" = "Add Group";
+"attribute.edit_group_title" = "Edit Group";
+"attribute.kind.cumulative" = "Cumulative";
+"attribute.kind.decay" = "Decay";
+
+"attribute_picker.title" = "Select Attribute";
+"attribute_picker.empty" = "No attributes";
+"attribute_picker.hint" = "Create an attribute first.";
+
+"dungeon.title" = "Dungeons";
+"dungeon.main_section" = "Main Dungeons";
+"dungeon.main_empty" = "No main dungeons";
+"dungeon.add_main" = "Add Main Dungeon";
+"dungeon.delete_main_confirm" = "Delete main dungeon “%@”? This action cannot be undone.";
+"dungeon.section.basic" = "Basic";
+"dungeon.name" = "Dungeon Name";
+"dungeon.uses_duration" = "Charge by time";
+"dungeon.section.effects" = "Effects";
+"dungeon.effects.empty" = "No effects";
+"dungeon.effects.add" = "Add Effect";
+"dungeon.add_title" = "Add Main Dungeon";
+"dungeon.edit_title" = "Edit Main Dungeon";
+"dungeon.uses_duration_short" = "Time";
+"dungeon.fixed_short" = "Fixed";
+
+"daily.section" = "Daily Life";
+"daily.empty" = "No items";
+"daily.add" = "Add Daily Life";
+"daily.add_title" = "Add Daily Life";
+"daily.edit_title" = "Edit Daily Life";
+"daily.name" = "Name";
+"daily.delete_confirm" = "Delete “%@”? This action cannot be undone.";
+"daily.preset.locked" = "System daily preset, cannot be modified.";
+
+"timer.title" = "Timer";
+"timer.today_remaining" = "Remaining today %@";
+"timer.duration" = "Duration";
+"timer.start" = "Start";
+"timer.end" = "End";
+"timer.dungeon" = "Dungeon";
+"timer.manage_dungeons" = "Manage Dungeons";
+"timer.unselected" = "Unselected";
+"timer.victory" = "Victory!";
+"timer.picker.title" = "Select Dungeon";
+"timer.picker.empty" = "No dungeons. Create one first.";
+"timer.picker.main_section" = "Main Dungeons";
+"timer.picker.main_empty" = "No main dungeons";
+"timer.picker.daily_section" = "Daily Life";
+"timer.picker.daily_empty" = "No daily life";
+
+"victory.title" = "Settlement";
+"victory.section.rating" = "Rating & Result";
+"victory.toggle.failed" = "Below expectation";
+"victory.rating" = "Rating";
+"victory.reward" = "Reward";
+"victory.optional" = "Optional";
+"victory.location" = "Location";
+"victory.notes" = "Notes";
+
+"log.edit_title" = "Edit Log";
+"log.section.basic" = "Basic";
+"log.name" = "Record Name";
+"log.start_time" = "Start Time";
+"log.end_time" = "End Time";
+"log.duration" = "Duration";
+"log.pricing.duration" = "Pricing: By time";
+"log.pricing.fixed" = "Pricing: Fixed";
+"log.section.effects" = "Effects";
+"log.effects.empty" = "No effects";
+"log.effects.add" = "Add Effect";
+"log.daily_no_effects" = "Daily life logs have no effects";
+"log.multiplier" = "Multiplier";
+
+"daily.preset.bathroom" = "Bathroom 🚻";
+"daily.preset.sleep" = "Sleep 💤";
+"daily.preset.commute" = "Commute 🚌";
+"daily.preset.eat" = "Eat 🍽️";
+"daily.preset.cook" = "Cook 🍳";
+"daily.preset.rest" = "Rest ♨️";
+"daily.preset.game" = "Game 🎮";
+
+"debug.group.language" = "Language";
+"debug.group.health" = "Health";
+"debug.group.mind" = "Mind";
+"debug.attr.english" = "English";
+"debug.attr.german" = "German";
+"debug.attr.stamina" = "Stamina";
+"debug.attr.focus" = "Focus";
+"debug.attr.creativity" = "Creativity";
+"debug.dungeon.read" = "Reading";
+"debug.dungeon.workout" = "Workout";
+"debug.dungeon.deep_work" = "Deep Work";
+"debug.dungeon.archive.learn" = "Archived Study";
+"debug.daily.coffee" = "Coffee Break";
+"debug.daily.nap" = "Nap";
+"archive.title" = "Archived Dungeons";
+"archive.placeholder" = "No archived items.";
+"archive.empty_main" = "No archived main dungeons";
+"archive.empty_daily" = "No archived daily life";
+"archive.confirm_title" = "Confirm Archive";
+"archive.restore_title" = "Restore";
+"archive.confirm_main" = "Archive “%@”?";
+"archive.confirm_daily" = "Archive “%@”?";
+"archive.restore_main" = "Restore “%@”?";
+"archive.restore_daily" = "Restore “%@”?";

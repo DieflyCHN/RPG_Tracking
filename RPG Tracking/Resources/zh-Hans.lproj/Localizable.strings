@@ -1,0 +1,183 @@
+"tab.timer" = "计时";
+"tab.attributes" = "属性";
+"tab.stats" = "统计";
+"preview.failed" = "预览加载失败";
+
+"action.add" = "添加";
+"action.save" = "保存";
+"action.cancel" = "取消";
+"action.close" = "关闭";
+"action.delete" = "删除";
+"action.edit" = "编辑";
+"action.delete_confirm" = "确认删除";
+"action.done" = "完成";
+"action.archive" = "存档";
+"action.unarchive" = "取消存档";
+
+"common.irreversible" = "此操作无法撤销。";
+"common.please_select" = "请选择";
+
+"range.day" = "日";
+"range.week" = "周";
+"range.year" = "年";
+"range.all" = "全部";
+"range.week_format" = "第%@周（%@-%@）";
+"range.year_format" = "%d年";
+
+"date.month_day" = "%@月%@日";
+
+"weekday.mon" = "一";
+"weekday.wed" = "三";
+"weekday.fri" = "五";
+"weekday.sun" = "日";
+
+"stats.title" = "统计";
+"stats.section.records" = "记录";
+"stats.total_earned" = "总获取经验";
+"stats.empty_records" = "暂无记录";
+"stats.section.range" = "时间范围";
+"stats.range_menu" = "范围";
+"stats.delete_log_confirm" = "将删除记录“%@”。此操作无法撤销。";
+"stats.failed" = "未达预期";
+"stats.rating" = "评分 %d";
+"stats.duration.days" = "%.1f日";
+"stats.duration.hm" = "%02d小时%02d分钟";
+
+"settings.title" = "设置";
+"settings.section.data" = "数据";
+"settings.dungeon_manage" = "副本管理";
+"settings.section.appearance" = "外观";
+"settings.stats_heatmap_latest" = "统计页热力图最新：";
+"settings.align_right" = "靠右";
+"settings.align_left" = "靠左";
+"settings.stats_compact" = "统计页紧凑布局：";
+"settings.section.settlement" = "结算";
+"settings.failed_bonus" = "未达预期 bonus";
+"settings.version_date" = "版本：%@\n日期：%@";
+"settings.section.dev" = "开发者选项";
+"settings.dev.seed" = "注入测试数据";
+
+"attributes.title" = "属性";
+"attributes.empty" = "暂无条目";
+"attributes.empty_hint" = "先创建一个分类，再添加属性。";
+"attributes.add_group" = "添加分类";
+"attributes.add_item" = "添加属性";
+"attributes.delete_group_confirm" = "将删除“%@”及其所有属性。此操作无法撤销。";
+"attributes.delete_item_confirm" = "将删除“%@”。此操作无法撤销。";
+
+"attribute.section.basic" = "基础信息";
+"attribute.section.config" = "属性配置";
+"attribute.name" = "属性名称";
+"attribute.group" = "所属分类";
+"attribute.base_value" = "基础值（1-10）";
+"attribute.weight" = "权重（1-3）";
+"attribute.kind" = "属性类型";
+"attribute.decay" = "每日衰减（0-1）";
+"attribute.add_title" = "添加属性";
+"attribute.edit_title" = "修改属性";
+"attribute.group_name" = "分类名称";
+"attribute.add_group_title" = "添加分类";
+"attribute.edit_group_title" = "修改分类";
+"attribute.kind.cumulative" = "累积型";
+"attribute.kind.decay" = "衰退型";
+
+"attribute_picker.title" = "选择属性";
+"attribute_picker.empty" = "暂无属性";
+"attribute_picker.hint" = "请先创建属性";
+
+"dungeon.title" = "副本";
+"dungeon.main_section" = "主线副本";
+"dungeon.main_empty" = "暂无主线副本";
+"dungeon.add_main" = "添加主线副本";
+"dungeon.delete_main_confirm" = "将删除主线副本“%@”。此操作无法撤销。";
+"dungeon.section.basic" = "基本信息";
+"dungeon.name" = "副本名称";
+"dungeon.uses_duration" = "按时间计价";
+"dungeon.section.effects" = "影响属性";
+"dungeon.effects.empty" = "暂无影响属性";
+"dungeon.effects.add" = "添加影响属性";
+"dungeon.add_title" = "添加主线副本";
+"dungeon.edit_title" = "编辑主线副本";
+"dungeon.uses_duration_short" = "按时间";
+"dungeon.fixed_short" = "固定";
+
+"daily.section" = "日常生活";
+"daily.empty" = "暂无内容";
+"daily.add" = "添加日常生活";
+"daily.add_title" = "添加日常生活";
+"daily.edit_title" = "编辑日常生活";
+"daily.name" = "名称";
+"daily.delete_confirm" = "将删除“%@”。此操作无法撤销。";
+"daily.preset.locked" = "基础日常生活预设，不可修改";
+
+"timer.title" = "计时";
+"timer.today_remaining" = "今日剩余 %@";
+"timer.duration" = "持续时间";
+"timer.start" = "开始";
+"timer.end" = "结束";
+"timer.dungeon" = "副本为";
+"timer.manage_dungeons" = "副本管理";
+"timer.unselected" = "未选择";
+"timer.victory" = "胜利！";
+"timer.picker.title" = "选择副本";
+"timer.picker.empty" = "暂无副本，请先在副本管理中创建。";
+"timer.picker.main_section" = "主线副本";
+"timer.picker.main_empty" = "暂无主线副本";
+"timer.picker.daily_section" = "日常生活";
+"timer.picker.daily_empty" = "暂无日常生活";
+
+"victory.title" = "结算";
+"victory.section.rating" = "评分与结果";
+"victory.toggle.failed" = "未达到预期";
+"victory.rating" = "主观评分";
+"victory.reward" = "奖励倍数";
+"victory.optional" = "可选信息";
+"victory.location" = "地点";
+"victory.notes" = "备注";
+
+"log.edit_title" = "修改记录";
+"log.section.basic" = "基本信息";
+"log.name" = "记录名称";
+"log.start_time" = "开始时间";
+"log.end_time" = "结束时间";
+"log.duration" = "持续时间";
+"log.pricing.duration" = "计价方式：按时间";
+"log.pricing.fixed" = "计价方式：固定倍率";
+"log.section.effects" = "影响属性";
+"log.effects.empty" = "暂无影响属性";
+"log.effects.add" = "添加影响属性";
+"log.daily_no_effects" = "日常生活记录不绑定属性";
+"log.multiplier" = "倍率";
+
+"daily.preset.bathroom" = "卫生间🚻";
+"daily.preset.sleep" = "睡觉💤";
+"daily.preset.commute" = "通勤🚌";
+"daily.preset.eat" = "吃饭🍽️";
+"daily.preset.cook" = "做饭🍳";
+"daily.preset.rest" = "休息♨️";
+"daily.preset.game" = "游戏🎮";
+
+"debug.group.language" = "语言能力";
+"debug.group.health" = "体能";
+"debug.group.mind" = "心智";
+"debug.attr.english" = "英语";
+"debug.attr.german" = "德语";
+"debug.attr.stamina" = "体力";
+"debug.attr.focus" = "专注";
+"debug.attr.creativity" = "创造力";
+"debug.dungeon.read" = "读书";
+"debug.dungeon.workout" = "锻炼";
+"debug.dungeon.deep_work" = "深度工作";
+"debug.dungeon.archive.learn" = "已存档·学习";
+"debug.daily.coffee" = "咖啡休息";
+"debug.daily.nap" = "小睡";
+"archive.title" = "已存档副本";
+"archive.placeholder" = "暂无内容";
+"archive.empty_main" = "暂无已存档主线副本";
+"archive.empty_daily" = "暂无已存档日常生活";
+"archive.confirm_title" = "确认存档";
+"archive.restore_title" = "取消存档";
+"archive.confirm_main" = "将存档“%@”。";
+"archive.confirm_daily" = "将存档“%@”。";
+"archive.restore_main" = "取消存档“%@”。";
+"archive.restore_daily" = "取消存档“%@”。";

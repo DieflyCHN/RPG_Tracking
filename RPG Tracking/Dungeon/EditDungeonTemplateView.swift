@@ -31,15 +31,15 @@ struct EditDungeonTemplateView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("基本信息") {
-                    TextField("副本名称", text: $name)
+                Section(L("dungeon.section.basic")) {
+                    TextField(L("dungeon.name"), text: $name)
                         .textInputAutocapitalization(.never)
-                    Toggle("按时间计价", isOn: $usesDuration)
+                    Toggle(L("dungeon.uses_duration"), isOn: $usesDuration)
                 }
 
-                Section("影响属性") {
+                Section(L("dungeon.section.effects")) {
                     if effects.isEmpty {
-                        Text("暂无影响属性")
+                        Text(L("dungeon.effects.empty"))
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach($effects) { $effect in
@@ -58,26 +58,26 @@ struct EditDungeonTemplateView: View {
                                 Button(role: .destructive) {
                                     removeEffect(effect)
                                 } label: {
-                                    Label("删除", systemImage: "trash")
+                                    Label(L("action.delete"), systemImage: "trash")
                                 }
                             }
                         }
                     }
 
-                    Button("添加影响属性") {
+                    Button(L("dungeon.effects.add")) {
                         showAttributePicker = true
                     }
                 }
             }
-            .navigationTitle("编辑主线副本")
+            .navigationTitle(L("dungeon.edit_title"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(L("action.save")) {
                         saveChanges()
                         dismiss()
                     }
@@ -128,4 +128,3 @@ struct EditDungeonTemplateView: View {
         }
     }
 }
-

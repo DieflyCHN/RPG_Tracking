@@ -14,13 +14,17 @@ final class DungeonTemplate: Identifiable {
     var name: String
     var usesDuration: Bool
     var createdAt: Date
+    var isArchived: Bool
+    var sortIndex: Int
     var effects: [DungeonEffectTemplate] = []
 
-    init(name: String, usesDuration: Bool = true, createdAt: Date = .now) {
+    init(name: String, usesDuration: Bool = true, createdAt: Date = .now, isArchived: Bool = false, sortIndex: Int = 0) {
         self.id = UUID()
         self.name = name
         self.usesDuration = usesDuration
         self.createdAt = createdAt
+        self.isArchived = isArchived
+        self.sortIndex = sortIndex
     }
 }
 

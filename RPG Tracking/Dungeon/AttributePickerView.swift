@@ -21,7 +21,7 @@ struct AttributePickerView: View {
                     Section(group.name) {
                         let items = group.entries.sorted(by: { $0.name < $1.name })
                         if items.isEmpty {
-                            Text("暂无属性")
+                            Text(L("attribute_picker.empty"))
                                 .foregroundStyle(.secondary)
                         } else {
                             ForEach(items) { attr in
@@ -37,15 +37,15 @@ struct AttributePickerView: View {
                 }
 
                 if groups.isEmpty {
-                    Text("请先创建属性")
+                    Text(L("attribute_picker.hint"))
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("选择属性")
+            .navigationTitle(L("attribute_picker.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
             }
         }

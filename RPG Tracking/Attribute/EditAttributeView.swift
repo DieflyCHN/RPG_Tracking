@@ -47,21 +47,21 @@ struct EditAttributeView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("基础信息") {
-                    TextField("属性名称", text: $name)
+                Section(L("attribute.section.basic")) {
+                    TextField(L("attribute.name"), text: $name)
                         .textInputAutocapitalization(.never)
 
-                    Picker("所属分类", selection: $selectedGroupID) {
-                        Text("请选择").tag(UUID?.none)
+                    Picker(L("attribute.group"), selection: $selectedGroupID) {
+                        Text(L("common.please_select")).tag(UUID?.none)
                         ForEach(groups) { group in
                             Text(group.name).tag(Optional(group.id))
                         }
                     }
                 }
 
-                Section("属性配置") {
+                Section(L("attribute.section.config")) {
                     HStack {
-                        Text("基础值（1-10）")
+                        Text(L("attribute.base_value"))
                         Spacer()
                         TextField("1.0", text: $baseValueText)
                             .keyboardType(.decimalPad)
@@ -74,7 +74,7 @@ struct EditAttributeView: View {
                     }
 
                     HStack {
-                        Text("权重（1-3）")
+                        Text(L("attribute.weight"))
                         Spacer()
                         TextField("1.0", text: $weightText)
                             .keyboardType(.decimalPad)
@@ -86,7 +86,7 @@ struct EditAttributeView: View {
                         weightText = filterDecimal(newValue)
                     }
 
-                    Picker("属性类型", selection: $kind) {
+                    Picker(L("attribute.kind"), selection: $kind) {
                         ForEach(AttributeKind.allCases) { option in
                             Text(option.label).tag(option)
                         }
@@ -94,7 +94,7 @@ struct EditAttributeView: View {
 
                     if kind == .decay {
                         HStack {
-                            Text("每日衰减（0-1）")
+                            Text(L("attribute.decay"))
                             Spacer()
                             TextField("0.05", text: $decayText)
                                 .keyboardType(.decimalPad)
@@ -108,7 +108,7 @@ struct EditAttributeView: View {
                     }
                 }
             }
-            .navigationTitle("修改属性")
+            .navigationTitle(L("attribute.edit_title"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
             .onChange(of: focusedField) { _, newValue in
@@ -116,10 +116,10 @@ struct EditAttributeView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(L("action.save")) {
                         save()
                         dismiss()
                     }

@@ -18,6 +18,7 @@ struct TimerView: View {
     @State private var selectedDailyLife: DailyLifeItem?
     @State private var showTemplatePicker = false
     @State private var showVictorySheet = false
+    @State private var showDungeonManage = false
 
     var body: some View {
         NavigationStack {
@@ -32,7 +33,7 @@ struct TimerView: View {
                             ProgressView(value: 1 - remaining.fractionRemaining)
                                 .tint(.green)
                                 .scaleEffect(x: 1, y: 2.0, anchor: .center)
-                            Text("今日剩余 \(formatHoursMinutes(remaining.secondsRemaining))")
+                            Text(String(format: L("timer.today_remaining"), formatHoursMinutes(remaining.secondsRemaining)))
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
@@ -44,7 +45,7 @@ struct TimerView: View {
                     Section {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
-                                Text("持续时间")
+                                Text(L("timer.duration"))
                                 Spacer()
                                 Text(formatDuration(elapsed))
                                     .monospacedDigit()
@@ -53,14 +54,14 @@ struct TimerView: View {
 
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
-                                    Text("开始")
+                                    Text(L("timer.start"))
                                         .foregroundStyle(.secondary)
                                     Spacer()
                                     Text(DateFormatters.monthDayTimeSeconds.string(from: sessionStart))
                                         .monospacedDigit()
                                 }
                                 HStack {
-                                    Text("结束")
+                                    Text(L("timer.end"))
                                         .foregroundStyle(.secondary)
                                     Spacer()
                                     Text(DateFormatters.monthDayTimeSeconds.string(from: now))
@@ -69,9 +70,9 @@ struct TimerView: View {
                             }
 
                             HStack {
-                                Text("副本为")
+                                Text(L("timer.dungeon"))
                                 Spacer()
-                                Text(selectedName ?? "未选择")
+                                Text(selectedName ?? L("timer.unselected"))
                                     .foregroundStyle(.secondary)
                                 Button {
                                     showTemplatePicker = true
@@ -88,7 +89,7 @@ struct TimerView: View {
                         Button {
                             showVictorySheet = true
                         } label: {
-                            Text("胜利！")
+                            Text(L("timer.victory"))
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .font(.headline)
                         }
@@ -96,8 +97,18 @@ struct TimerView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
-                .navigationTitle("计时")
+                .navigationTitle(L("timer.title"))
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showDungeonManage = true
+                        } label: {
+                            Image(systemName: "list.bullet.rectangle")
+                                .accessibilityLabel(Text(L("timer.manage_dungeons")))
+                        }
+                    }
+                }
                 .sheet(isPresented: $showTemplatePicker) {
                     DungeonPickerSheet(
                         templates: templates,
@@ -107,7 +118,7 @@ struct TimerView: View {
                     )
                 }
                 .sheet(isPresented: $showVictorySheet) {
-                    VictorySheet(isDailyLife: selectedDailyLife != nil) { result in
+                    VictorySheet(onConfirm: { result in
                         saveLog(
                             endAt: now,
                             elapsedSeconds: elapsed,
@@ -117,7 +128,10 @@ struct TimerView: View {
                             location: result.location,
                             notes: result.notes
                         )
-                    }
+                    }, isDailyLife: selectedDailyLife != nil)
+                }
+                .sheet(isPresented: $showDungeonManage) {
+                    DungeonsView()
                 }
             }
             .onAppear {
@@ -268,13 +282,13 @@ private struct DungeonPickerSheet: View {
         NavigationStack {
             List {
                 if templates.isEmpty && dailyLifeItems.isEmpty {
-                    Text("暂无副本，请先在副本管理中创建。")
+                    Text(L("timer.picker.empty"))
                         .foregroundStyle(.secondary)
                 }
 
-                Section("主线副本") {
+                Section(L("timer.picker.main_section")) {
                     if templates.isEmpty {
-                        Text("暂无主线副本")
+                        Text(L("timer.picker.main_empty"))
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(templates) { template in
@@ -298,9 +312,9 @@ private struct DungeonPickerSheet: View {
                     }
                 }
 
-                Section("日常生活") {
+                Section(L("timer.picker.daily_section")) {
                     if dailyLifeItems.isEmpty {
-                        Text("暂无日常生活")
+                        Text(L("timer.picker.daily_empty"))
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(dailyLifeItems) { item in
@@ -324,11 +338,11 @@ private struct DungeonPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("选择副本")
+            .navigationTitle(L("timer.picker.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") { dismiss() }
+                    Button(L("action.close")) { dismiss() }
                 }
             }
         }
@@ -368,8 +382,8 @@ private struct VictorySheet: View {
         NavigationStack {
             List {
                 if !isDailyLife {
-                    Section("评分与结果") {
-                        Toggle("未达到预期", isOn: $isFailed)
+                    Section(L("victory.section.rating")) {
+                        Toggle(L("victory.toggle.failed"), isOn: $isFailed)
                             .onChange(of: isFailed) { _, newValue in
                                 if newValue {
                                     focusedField = nil
@@ -379,7 +393,7 @@ private struct VictorySheet: View {
 
                         if !isFailed {
                             HStack {
-                                Text("主观评分")
+                                Text(L("victory.rating"))
                                 Spacer()
                                 TextField("0-100", text: $ratingText)
                                     .keyboardType(.numberPad)
@@ -392,7 +406,7 @@ private struct VictorySheet: View {
                             }
 
                             HStack {
-                                Text("奖励倍数")
+                                Text(L("victory.reward"))
                                 Spacer()
                                 TextField("1.0", text: $rewardText)
                                     .keyboardType(.decimalPad)
@@ -409,24 +423,24 @@ private struct VictorySheet: View {
                 }
 
                 Section {
-                    DisclosureGroup("可选信息", isExpanded: $showOptionalInfo) {
-                        TextField("地点", text: $location)
-                        TextField("备注", text: $notes, axis: .vertical)
+                    DisclosureGroup(L("victory.optional"), isExpanded: $showOptionalInfo) {
+                        TextField(L("victory.location"), text: $location)
+                        TextField(L("victory.notes"), text: $notes, axis: .vertical)
                     }
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("结算")
+            .navigationTitle(L("victory.title"))
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: focusedField) { _, newValue in
                 handleFocusChange(newValue)
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(L("action.save")) {
                         onConfirm(
                             VictoryResult(
                                 rating: ratingValue,
@@ -513,8 +527,8 @@ private struct VictorySheet: View {
 private enum DateFormatters {
     static let monthDayTimeSeconds: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "MM月dd日 HH:mm:ss"
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("MMMdHHmmss")
         return formatter
     }()
 }

@@ -21,24 +21,32 @@ struct EditDailyLifeView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("日常生活") {
-                    TextField("名称", text: $name)
+                Section(L("daily.section")) {
+                    TextField(L("daily.name"), text: $name)
                         .textInputAutocapitalization(.never)
+                        .disabled(item.isSystemPreset)
+                }
+                if item.isSystemPreset {
+                    Section {
+                        Text(L("daily.preset.locked"))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            .navigationTitle("编辑日常生活")
+            .navigationTitle(L("daily.edit_title"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(L("action.save")) {
                         save()
                         dismiss()
                     }
-                    .disabled(!canSubmit)
+                    .disabled(!canSubmit || item.isSystemPreset)
                 }
             }
         }

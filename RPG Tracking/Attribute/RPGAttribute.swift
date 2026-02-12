@@ -17,9 +17,9 @@ enum AttributeKind: String, CaseIterable, Identifiable, Codable {
     var label: String {
         switch self {
         case .cumulative:
-            return "累积型"
+            return L("attribute.kind.cumulative")
         case .decay:
-            return "衰退型"
+            return L("attribute.kind.decay")
         }
     }
 }
@@ -29,10 +29,12 @@ final class AttributeGroup: Identifiable {
     var id: UUID
     var name: String
     var entries: [RPGAttribute] = []
+    var sortIndex: Int
 
-    init(name: String) {
+    init(name: String, sortIndex: Int = 0) {
         self.id = UUID()
         self.name = name
+        self.sortIndex = sortIndex
     }
 
     func averageExperience(asOf date: Date = .now) -> Double {
@@ -72,6 +74,7 @@ final class RPGAttribute: Identifiable {
     var kindRaw: String
     var decayPerDay: Double
     var lastGainAt: Date?
+    var sortIndex: Int
 
     var group: AttributeGroup?
 
@@ -81,7 +84,8 @@ final class RPGAttribute: Identifiable {
         weight: Double = 1,
         kind: AttributeKind = .cumulative,
         decayPerDay: Double = 0.05,
-        group: AttributeGroup? = nil
+        group: AttributeGroup? = nil,
+        sortIndex: Int = 0
     ) {
         self.id = UUID()
         self.name = name
@@ -92,6 +96,7 @@ final class RPGAttribute: Identifiable {
         self.decayPerDay = decayPerDay
         self.lastGainAt = nil
         self.group = group
+        self.sortIndex = sortIndex
     }
 
     var kind: AttributeKind {

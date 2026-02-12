@@ -18,19 +18,19 @@ struct AddAttributeGroupView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("分类名称", text: $name)
+                    TextField(L("attribute.group_name"), text: $name)
                         .textInputAutocapitalization(.never)
                 }
             }
-            .navigationTitle("添加分类")
+            .navigationTitle(L("attribute.add_group_title"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("添加") {
+                    Button(L("action.add")) {
                         addGroup()
                         dismiss()
                     }
@@ -43,8 +43,14 @@ struct AddAttributeGroupView: View {
     private func addGroup() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        let group = AttributeGroup(name: trimmed)
+        let group = AttributeGroup(name: trimmed, sortIndex: nextGroupIndex())
         modelContext.insert(group)
+    }
+
+    private func nextGroupIndex() -> Int {
+        let descriptor = FetchDescriptor<AttributeGroup>()
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        return (all.map(\.sortIndex).max() ?? 0) + 1
     }
 }
 
@@ -65,7 +71,7 @@ struct AddAttributeGroupView_Previews: PreviewProvider {
                 AddAttributeGroupView()
                     .modelContainer(container)
             } else {
-                Text("预览加载失败")
+                Text(L("preview.failed"))
             }
         }
     }

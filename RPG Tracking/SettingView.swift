@@ -12,41 +12,34 @@ struct SettingView: View {
     @AppStorage("statsCompactLogs") private var statsCompactLogs: Bool = false
     @AppStorage("failedBonus") private var failedBonus: Double = 1.0
     @State private var failedBonusText: String = "1.0"
+    @Environment(\.modelContext) private var modelContext
     @FocusState private var focusedField: FocusField?
     @State private var lastFocusedField: FocusField?
 
     var body: some View {
         NavigationStack {
             List {
-                Section("数据") {
-                    NavigationLink {
-                        DungeonsView()
-                    } label: {
-                        Text("副本管理")
-                    }
-                }
-
-                Section("外观") {
+                Section(L("settings.section.appearance")) {
                     HStack {
-                        Text("统计页热力图最新：")
+                        Text(L("settings.stats_heatmap_latest"))
                         Spacer()
-                        Text(statsHeatmapLatest ? "靠右" : "靠左")
+                        Text(statsHeatmapLatest ? L("settings.align_right") : L("settings.align_left"))
                             .foregroundStyle(.secondary)
                         Toggle("", isOn: $statsHeatmapLatest)
                             .labelsHidden()
                     }
 
                     HStack {
-                        Text("统计页紧凑布局：")
+                        Text(L("settings.stats_compact"))
                         Spacer()
                         Toggle("", isOn: $statsCompactLogs)
                             .labelsHidden()
                     }
                 }
 
-                Section("结算") {
+                Section(L("settings.section.settlement")) {
                     HStack {
-                        Text("未达预期 bonus")
+                        Text(L("settings.failed_bonus"))
                         Spacer()
                         TextField("1.0", text: $failedBonusText)
                             .keyboardType(.decimalPad)
@@ -60,14 +53,17 @@ struct SettingView: View {
                     }
                 }
 
+                Section(L("settings.section.dev")) {
+                    Button(L("settings.dev.seed")) {
+                        DebugSeeder.seedIfNeeded(in: modelContext)
+                    }
+                }
+
                 Section {
-                    Text("""
-                         版本：v2.0.0-beta
-                         日期：2026.02.09
-                         """)
+                    Text(String(format: L("settings.version_date"), "v3.0.0-beta", "2026.02.12"))
                 }
             }
-            .navigationTitle("设置")
+            .navigationTitle(L("settings.title"))
             .navigationBarTitleDisplayMode(.inline)
             .listStyle(.insetGrouped)
             .scrollDismissesKeyboard(.immediately)

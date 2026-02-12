@@ -22,19 +22,19 @@ struct EditAttributeGroupView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("分类名称", text: $name)
+                    TextField(L("attribute.group_name"), text: $name)
                         .textInputAutocapitalization(.never)
                 }
             }
-            .navigationTitle("修改分类")
+            .navigationTitle(L("attribute.edit_group_title"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(L("action.save")) {
                         save()
                         dismiss()
                     }

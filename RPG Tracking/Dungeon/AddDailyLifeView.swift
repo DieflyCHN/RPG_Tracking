@@ -15,20 +15,20 @@ struct AddDailyLifeView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("日常生活") {
-                    TextField("名称", text: $name)
+                Section(L("daily.section")) {
+                    TextField(L("daily.name"), text: $name)
                         .textInputAutocapitalization(.never)
                 }
             }
-            .navigationTitle("添加日常生活")
+            .navigationTitle(L("daily.add_title"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("添加") {
+                    Button(L("action.add")) {
                         addItem()
                         dismiss()
                     }
@@ -45,7 +45,13 @@ struct AddDailyLifeView: View {
     private func addItem() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        modelContext.insert(DailyLifeItem(name: trimmed))
+        modelContext.insert(DailyLifeItem(name: trimmed, sortIndex: nextDailyIndex()))
+    }
+
+    private func nextDailyIndex() -> Int {
+        let descriptor = FetchDescriptor<DailyLifeItem>()
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        return (all.filter { !$0.isArchived }.map(\.sortIndex).max() ?? 0) + 1
     }
 }
 

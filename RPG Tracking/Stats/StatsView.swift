@@ -18,10 +18,10 @@ enum StatsTimeRange: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .day: return "日"
-        case .week: return "周"
-        case .year: return "年"
-        case .all: return "全部"
+        case .day: return L("range.day")
+        case .week: return L("range.week")
+        case .year: return L("range.year")
+        case .all: return L("range.all")
         }
     }
 }
@@ -61,9 +61,9 @@ struct StatsView: View {
                     )
                 }
 
-                Section("记录") {
+                Section(L("stats.section.records")) {
                     HStack {
-                        Text("总获取经验")
+                        Text(L("stats.total_earned"))
                         Spacer()
                         Text(String(format: "+%.2f", totalEarnedInRange))
                             .monospacedDigit()
@@ -71,7 +71,7 @@ struct StatsView: View {
                     .foregroundStyle(.secondary)
 
                     if logsInRange.isEmpty {
-                        Text("暂无记录")
+                        Text(L("stats.empty_records"))
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(logsInRange) { log in
@@ -81,31 +81,31 @@ struct StatsView: View {
                                     Button {
                                         selectedLog = log
                                     } label: {
-                                        Label("编辑", systemImage: "pencil")
+                                        Label(L("action.edit"), systemImage: "pencil")
                                     }
                                     Button(role: .destructive) {
                                         pendingDeleteLog = log
                                         showDeleteConfirm = true
                                     } label: {
-                                        Label("删除", systemImage: "trash")
+                                        Label(L("action.delete"), systemImage: "trash")
                                     }
                                 }
                         }
                     }
                 }
             }
-            .navigationTitle("统计")
+            .navigationTitle(L("stats.title"))
             .navigationBarTitleDisplayMode(.inline)
             .listStyle(.insetGrouped)
             .sheet(item: $selectedLog) { log in
                 ModifyDungeonLogView(log: log)
                     .presentationDetents([.large])
             }
-            .alert("确认删除", isPresented: $showDeleteConfirm) {
-                Button("取消", role: .cancel) {
+            .alert(L("action.delete_confirm"), isPresented: $showDeleteConfirm) {
+                Button(L("action.cancel"), role: .cancel) {
                     pendingDeleteLog = nil
                 }
-                Button("删除", role: .destructive) {
+                Button(L("action.delete"), role: .destructive) {
                     if let log = pendingDeleteLog {
                         deleteLog(log)
                     }
@@ -113,15 +113,15 @@ struct StatsView: View {
                 }
             } message: {
                 if let log = pendingDeleteLog {
-                    Text("将删除记录“\(log.name)”。此操作无法撤销。")
+                    Text(String(format: L("stats.delete_log_confirm"), log.name))
                 } else {
-                    Text("此操作无法撤销。")
+                    Text(L("common.irreversible"))
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Section("时间范围") {
+                        Section(L("stats.section.range")) {
                             ForEach(StatsTimeRange.allCases) { option in
                                 Button {
                                     range = option
@@ -135,7 +135,7 @@ struct StatsView: View {
                             }
                         }
                     } label: {
-                        Text("范围")
+                        Text(L("stats.range_menu"))
                     }
                 }
             }
@@ -239,22 +239,17 @@ private struct TimeRangeRow: View {
             let start = interval?.start ?? anchorDate
             let end = (interval?.end ?? anchorDate).addingTimeInterval(-86_400)
             let weekText = String(format: "%02d", weekNumber)
-            return "第\(weekText)周（\(formatMonthDay(start))-\(formatMonthDay(end))）"
+            return String(format: L("range.week_format"), weekText, formatMonthDay(start), formatMonthDay(end))
         case .year:
             let year = calendar.component(.year, from: anchorDate)
-            return "\(year)年"
+            return String(format: L("range.year_format"), year)
         case .all:
-            return "全部"
+            return L("range.all")
         }
     }
 
     private func formatMonthDay(_ date: Date) -> String {
-        let calendar = Calendar.current
-        let month = calendar.component(.month, from: date)
-        let day = calendar.component(.day, from: date)
-        let monthText = String(format: "%02d", month)
-        let dayText = String(format: "%02d", day)
-        return "\(monthText)月\(dayText)日"
+        DateFormatters.monthDay.string(from: date)
     }
 }
 
@@ -327,11 +322,11 @@ private struct StatsLogRow: View {
                 Text(String(format: "+%.2f", totalEarned))
                     .monospacedDigit()
                 if log.isFailed {
-                    Text("未达预期")
+                    Text(L("stats.failed"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("评分 \(log.rating)")
+                    Text(String(format: L("stats.rating"), log.rating))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -346,11 +341,11 @@ private struct StatsLogRow: View {
         let totalHours = Double(totalMinutes) / 60.0
         if totalHours >= 24 {
             let days = totalHours / 24.0
-            return String(format: "%.1f日", days)
+            return String(format: L("stats.duration.days"), days)
         }
         let hours = totalMinutes / 60
         let mins = totalMinutes % 60
-        return String(format: "%02d小时%02d分钟", hours, mins)
+        return String(format: L("stats.duration.hm"), hours, mins)
     }
 }
 
@@ -368,8 +363,14 @@ private extension View {
 private enum DateFormatters {
     static let fullDateTime: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "yyyy年MM月dd日 HH:mm"
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("yyyyMMMdHHmm")
+        return formatter
+    }()
+    static let monthDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("MMMd")
         return formatter
     }()
 }
@@ -385,29 +386,37 @@ private enum HeatmapBuilder {
         let today = calendar.startOfDay(for: Date())
 
         let start: Date
+        let end: Date
         switch range {
         case .day:
             start = today
+            end = today
         case .week:
             start = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+            end = today
         case .year:
             start = calendar.date(byAdding: .day, value: -364, to: today) ?? today
+            end = today
         case .all:
             let earliest = effects.compactMap { $0.log?.date }.min() ?? today
-            start = calendar.startOfDay(for: earliest)
+            let yearStart = calendar.date(byAdding: .day, value: -364, to: today) ?? today
+            let yearEnd = today
+            let earliestDay = calendar.startOfDay(for: earliest)
+            start = min(earliestDay, yearStart)
+            end = yearEnd
         }
 
         var dailyTotals: [Date: Double] = [:]
         for effect in effects {
             guard let date = effect.log?.date else { continue }
             let day = calendar.startOfDay(for: date)
-            guard day >= start && day <= today else { continue }
+            guard day >= start && day <= end else { continue }
             dailyTotals[day, default: 0] += effect.earned
         }
 
         var days: [HeatmapDay] = []
         var cursor = start
-        while cursor <= today {
+        while cursor <= end {
             let value = dailyTotals[cursor, default: 0]
             days.append(HeatmapDay(date: cursor, value: value))
             cursor = calendar.date(byAdding: .day, value: 1, to: cursor) ?? cursor.addingTimeInterval(86_400)
@@ -435,7 +444,15 @@ private struct HeatmapView: View {
         let today = calendar.startOfDay(for: Date())
         let grouped = groupByWeek(data: data, calendar: calendar, latestOnRight: latestOnRight)
         let maxValue = data.map(\.value).max() ?? 0
-        let weekdayLabels = ["一", " ", "三", " ", "五", " ", "日"]
+        let weekdayLabels = [
+            L("weekday.mon"),
+            " ",
+            L("weekday.wed"),
+            " ",
+            L("weekday.fri"),
+            " ",
+            L("weekday.sun")
+        ]
         let labelWidth: CGFloat = 26
 
         GeometryReader { proxy in

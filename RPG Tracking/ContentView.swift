@@ -9,22 +9,27 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
+
     var body: some View {
         TabView {
             TimerView()
                 .tabItem {
-                    Label("计时", systemImage: "timer")
+                    Label(L("tab.timer"), systemImage: "timer")
                 }
 
             AttributesView()
                 .tabItem {
-                    Label("属性", systemImage: "chart.bar.xaxis")
+                    Label(L("tab.attributes"), systemImage: "chart.bar.xaxis")
                 }
 
             StatsView()
                 .tabItem {
-                    Label("统计", systemImage: "chart.pie")
+                    Label(L("tab.stats"), systemImage: "chart.pie")
                 }
+        }
+        .task {
+            DailyLifePresets.ensure(in: modelContext)
         }
     }
 }
@@ -46,7 +51,7 @@ struct ContentView_Previews: PreviewProvider {
                 ContentView()
                     .modelContainer(container)
             } else {
-                Text("预览加载失败")
+                Text(L("preview.failed"))
             }
         }
     }

@@ -58,12 +58,12 @@ struct ModifyDungeonLogView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("基本信息") {
-                    TextField("记录名称", text: $name)
+                Section(L("log.section.basic")) {
+                    TextField(L("log.name"), text: $name)
                         .textInputAutocapitalization(.never)
 
                     HStack {
-                        Text("开始时间")
+                        Text(L("log.start_time"))
                         Spacer()
                         Text(DateFormatters.fullDateTime.string(from: startDate))
                             .monospacedDigit()
@@ -72,14 +72,14 @@ struct ModifyDungeonLogView: View {
 
                     if isLatestLog {
                         DatePicker(
-                            "结束时间",
+                            L("log.end_time"),
                             selection: $endDate,
                             in: startDate...Date()
                         )
                         .environment(\.locale, Locale(identifier: "zh_CN"))
                     } else {
                         HStack {
-                            Text("结束时间")
+                            Text(L("log.end_time"))
                             Spacer()
                             Text(DateFormatters.fullDateTime.string(from: endDate))
                                 .monospacedDigit()
@@ -88,35 +88,35 @@ struct ModifyDungeonLogView: View {
                     }
 
                     HStack {
-                        Text("持续时间")
+                        Text(L("log.duration"))
                         Spacer()
                         Text(formatDuration(from: startDate, to: endDate))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
 
-                    Text(usesDuration ? "计价方式：按时间" : "计价方式：固定倍率")
+                    Text(usesDuration ? L("log.pricing.duration") : L("log.pricing.fixed"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
-                Section("影响属性") {
+                Section(L("log.section.effects")) {
                     if isDailyLife {
-                        Text("日常生活记录不绑定属性")
+                        Text(L("log.daily_no_effects"))
                             .foregroundStyle(.secondary)
                     } else if effects.isEmpty {
-                        Text("暂无影响属性")
+                        Text(L("log.effects.empty"))
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach($effects) { $effect in
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(effect.attribute.name)
                                 HStack {
-                                    Text("倍率")
+                                    Text(L("log.multiplier"))
                                     Spacer()
-                                TextField("1.0", text: multiplierTextBinding($effect))
-                                    .keyboardType(.decimalPad)
-                                    .multilineTextAlignment(.trailing)
+                                    TextField("1.0", text: multiplierTextBinding($effect))
+                                        .keyboardType(.decimalPad)
+                                        .multilineTextAlignment(.trailing)
                                     .frame(width: 80)
                                     .focused($focusedField, equals: .effect(effect.id))
                             }
@@ -125,22 +125,22 @@ struct ModifyDungeonLogView: View {
                                 Button(role: .destructive) {
                                     removeEffect(effect)
                                 } label: {
-                                    Label("删除", systemImage: "trash")
+                                    Label(L("action.delete"), systemImage: "trash")
                                 }
                             }
                         }
                     }
 
                     if !isDailyLife {
-                        Button("添加影响属性") {
+                        Button(L("log.effects.add")) {
                             showAttributePicker = true
                         }
                     }
                 }
 
                 if !isDailyLife {
-                    Section("评分与结果") {
-                        Toggle("未达到预期", isOn: $isFailed)
+                    Section(L("victory.section.rating")) {
+                        Toggle(L("victory.toggle.failed"), isOn: $isFailed)
                             .onChange(of: isFailed) { _, newValue in
                                 if newValue {
                                     focusedField = nil
@@ -150,7 +150,7 @@ struct ModifyDungeonLogView: View {
 
                         if !isFailed {
                             HStack {
-                                Text("主观评分")
+                                Text(L("victory.rating"))
                                 Spacer()
                                 TextField("0-100", text: $ratingText)
                                     .keyboardType(.numberPad)
@@ -163,7 +163,7 @@ struct ModifyDungeonLogView: View {
                             }
 
                             HStack {
-                                Text("奖励倍数")
+                                Text(L("victory.reward"))
                                 Spacer()
                                 TextField("1.0", text: $rewardText)
                                     .keyboardType(.decimalPad)
@@ -179,12 +179,12 @@ struct ModifyDungeonLogView: View {
                     }
                 }
 
-                Section("可选信息") {
-                    TextField("地点", text: $location)
-                    TextField("备注", text: $notes, axis: .vertical)
+                Section(L("victory.optional")) {
+                    TextField(L("victory.location"), text: $location)
+                    TextField(L("victory.notes"), text: $notes, axis: .vertical)
                 }
             }
-            .navigationTitle("修改记录")
+            .navigationTitle(L("log.edit_title"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollDismissesKeyboard(.immediately)
             .onChange(of: focusedField) { _, newValue in
@@ -192,10 +192,10 @@ struct ModifyDungeonLogView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(L("action.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(L("action.save")) {
                         saveChanges()
                         dismiss()
                     }
@@ -332,11 +332,11 @@ struct ModifyDungeonLogView: View {
         let totalHours = Double(minutes) / 60.0
         if totalHours >= 24 {
             let days = totalHours / 24.0
-            return String(format: "%.1f日", days)
+            return String(format: L("stats.duration.days"), days)
         }
         let hours = minutes / 60
         let mins = minutes % 60
-        return String(format: "%02d小时%02d分钟", hours, mins)
+        return String(format: L("stats.duration.hm"), hours, mins)
     }
 
     private func multiplierTextBinding(_ effect: Binding<DungeonEffectDraft>) -> Binding<String> {
@@ -435,8 +435,8 @@ struct ModifyDungeonLogView: View {
 private enum DateFormatters {
     static let fullDateTime: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "yyyy年MM月dd日 HH:mm"
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("yyyyMMMdHHmm")
         return formatter
     }()
 }

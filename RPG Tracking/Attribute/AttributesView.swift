@@ -10,7 +10,7 @@ import SwiftData
 
 struct AttributesView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \AttributeGroup.name) private var groups: [AttributeGroup]
+    @Query(sort: \AttributeGroup.sortIndex) private var groups: [AttributeGroup]
 
     @State private var showAddGroup = false
     @State private var showAddAttribute = false
@@ -20,67 +20,92 @@ struct AttributesView: View {
     @State private var pendingDeleteGroup: AttributeGroup?
     @State private var pendingDeleteAttribute: RPGAttribute?
     @State private var showDeleteConfirm = false
+    @State private var isReordering = false
 
     var body: some View {
         NavigationStack {
-            SwiftUI.List(groups) { group in
-                DisclosureGroup {
-                    if group.entries.isEmpty {
-                        Text("暂无条目")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(group.entries.sorted(by: { $0.name < $1.name })) { attr in
-                            Button {
-                                selectedAttribute = attr
-                            } label: {
-                                AttributeRow(attr: attr)
-                            }
-                            .buttonStyle(.plain)
-                            .contentShape(Rectangle())
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    pendingDeleteAttribute = attr
-                                    pendingDeleteGroup = nil
-                                    showDeleteConfirm = true
+            SwiftUI.List {
+                ForEach(groups) { group in
+                    DisclosureGroup {
+                        let items = group.entries.sorted(by: { $0.sortIndex < $1.sortIndex })
+                        if items.isEmpty {
+                            Text(L("attributes.empty"))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(items) { attr in
+                                Button {
+                                    selectedAttribute = attr
                                 } label: {
-                                    Label("删除", systemImage: "trash")
+                                    AttributeRow(attr: attr)
+                                }
+                                .buttonStyle(.plain)
+                                .contentShape(Rectangle())
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        pendingDeleteAttribute = attr
+                                        pendingDeleteGroup = nil
+                                        showDeleteConfirm = true
+                                    } label: {
+                                        Label(L("action.delete"), systemImage: "trash")
+                                    }
                                 }
                             }
+                            .onMove { source, destination in
+                                moveAttributes(in: group, from: source, to: destination)
+                            }
+                        }
+                    } label: {
+                        AttributeGroupRow(group: group, onEdit: {
+                            selectedGroup = group
+                        }) {
+                            pendingDeleteGroup = group
+                            pendingDeleteAttribute = nil
+                            showDeleteConfirm = true
                         }
                     }
-                } label: {
-                    AttributeGroupRow(group: group, onEdit: {
-                        selectedGroup = group
-                    }) {
-                        pendingDeleteGroup = group
-                        pendingDeleteAttribute = nil
-                        showDeleteConfirm = true
-                    }
+                }
+                .onMove { source, destination in
+                    moveGroups(from: source, to: destination)
                 }
             }
             .overlay {
                 if groups.isEmpty {
-                    Text("先创建一个分类，再添加属性。")
+                    Text(L("attributes.empty_hint"))
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("属性")
+            .navigationTitle(L("attributes.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Menu {
-                        Button("添加分类") { showAddGroup = true }
-                        Button("添加属性") { showAddAttribute = true }
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
+                ToolbarItem(placement: .topBarLeading) {
+                    if isReordering {
+                        Button(L("action.done")) {
+                            isReordering = false
+                        }
+                    } else {
+                        Button(L("action.edit")) {
+                            isReordering = true
+                        }
                     }
                 }
+
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if !isReordering {
+                        Menu {
+                            Button(L("attributes.add_group")) { showAddGroup = true }
+                            Button(L("attributes.add_item")) { showAddAttribute = true }
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                    }
+                }
+
             }
             .sheet(isPresented: $showAddGroup) {
                 AddAttributeGroupView()
@@ -101,12 +126,21 @@ struct AttributesView: View {
             .sheet(isPresented: $showSettings) {
                 SettingView()
             }
-            .alert("确认删除", isPresented: $showDeleteConfirm) {
-                Button("取消", role: .cancel) {
+            .environment(\.editMode, .constant(isReordering ? .active : .inactive))
+            .onAppear {
+                normalizeGroupOrder()
+                normalizeAttributeOrder()
+            }
+            .onDisappear {
+                // Leave edit mode when switching tabs or leaving the page.
+                isReordering = false
+            }
+            .alert(L("action.delete_confirm"), isPresented: $showDeleteConfirm) {
+                Button(L("action.cancel"), role: .cancel) {
                     pendingDeleteGroup = nil
                     pendingDeleteAttribute = nil
                 }
-                Button("删除", role: .destructive) {
+                Button(L("action.delete"), role: .destructive) {
                     if let group = pendingDeleteGroup {
                         deleteGroup(group)
                     } else if let attr = pendingDeleteAttribute {
@@ -117,11 +151,11 @@ struct AttributesView: View {
                 }
             } message: {
                 if let group = pendingDeleteGroup {
-                    Text("将删除“\(group.name)”及其所有属性。此操作无法撤销。")
+                    Text(String(format: L("attributes.delete_group_confirm"), group.name))
                 } else if let attr = pendingDeleteAttribute {
-                    Text("将删除“\(attr.name)”。此操作无法撤销。")
+                    Text(String(format: L("attributes.delete_item_confirm"), attr.name))
                 } else {
-                    Text("此操作无法撤销。")
+                    Text(L("common.irreversible"))
                 }
             }
         }
@@ -132,6 +166,45 @@ struct AttributesView: View {
             modelContext.delete(attr)
         }
         modelContext.delete(group)
+    }
+
+    private func moveGroups(from source: IndexSet, to destination: Int) {
+        var updated = groups
+        updated.move(fromOffsets: source, toOffset: destination)
+        for (index, group) in updated.enumerated() {
+            group.sortIndex = index
+        }
+    }
+
+    private func moveAttributes(in group: AttributeGroup, from source: IndexSet, to destination: Int) {
+        var updated = group.entries.sorted(by: { $0.sortIndex < $1.sortIndex })
+        updated.move(fromOffsets: source, toOffset: destination)
+        for (index, attr) in updated.enumerated() {
+            attr.sortIndex = index
+        }
+    }
+
+    private func normalizeGroupOrder() {
+        guard groups.count > 1 else { return }
+        let allZero = groups.allSatisfy { $0.sortIndex == 0 }
+        guard allZero else { return }
+        let ordered = groups.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        for (index, group) in ordered.enumerated() {
+            group.sortIndex = index
+        }
+    }
+
+    private func normalizeAttributeOrder() {
+        for group in groups {
+            let items = group.entries
+            guard items.count > 1 else { continue }
+            let allZero = items.allSatisfy { $0.sortIndex == 0 }
+            guard allZero else { continue }
+            let ordered = items.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            for (index, attr) in ordered.enumerated() {
+                attr.sortIndex = index
+            }
+        }
     }
 }
 
@@ -163,7 +236,7 @@ private struct AttributeGroupRow: View {
             Button(role: .destructive) {
                 onRequestDelete()
             } label: {
-                Label("删除", systemImage: "trash")
+                Label(L("action.delete"), systemImage: "trash")
             }
         }
     }
