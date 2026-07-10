@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SettingView: View {
     @AppStorage("statsHeatmapLatest") private var statsHeatmapLatest: Bool = true
